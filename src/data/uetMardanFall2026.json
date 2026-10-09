@@ -1,0 +1,2173 @@
+{
+  "AI": {
+    "sections": {
+      "1": [
+        "A"
+      ],
+      "3": [
+        "A"
+      ]
+    },
+    "rooms": [
+      [
+        "CAI-02",
+        "CAI 02",
+        "lecture"
+      ],
+      [
+        "CAI-05",
+        "CAI 05",
+        "lecture"
+      ]
+    ],
+    "teachers": [
+      "Fahad Ali",
+      "Prof. Dr. Gul Muhammad Khan",
+      "Engr. Zahra Khan",
+      "Mansoor Khan",
+      "Mr. Salman Nasir",
+      "Mr. Habib Ullah",
+      "Dr. Murtaza",
+      "Engr. Muhammad Ali",
+      "Spogmay Muhammad",
+      "Miss Barkah Khan",
+      "Umar Sadique",
+      "Ikram Ullah",
+      "Mr. Muhammad Younas"
+    ],
+    "courses": [
+      [
+        1,
+        "AI-101",
+        "Applications of Information and Communication Technologies",
+        2,
+        "lecture",
+        "Fahad Ali"
+      ],
+      [
+        1,
+        "AI-101L",
+        "Applications of Information and Communication Technologies Lab",
+        1,
+        "lab",
+        "Fahad Ali"
+      ],
+      [
+        1,
+        "AI-102",
+        "Programming Fundamentals",
+        3,
+        "lecture",
+        "Prof. Dr. Gul Muhammad Khan"
+      ],
+      [
+        1,
+        "AI-102L",
+        "Programming Fundamentals Lab",
+        1,
+        "lab",
+        "Engr. Zahra Khan"
+      ],
+      [
+        1,
+        "BSH-112-AI",
+        "Functional English",
+        3,
+        "lecture",
+        "Mr. Salman Nasir"
+      ],
+      [
+        1,
+        "AI-F26-QR1",
+        "Quantitative Reasoning I (Discrete Structure)",
+        3,
+        "lecture",
+        "Mansoor Khan"
+      ],
+      [
+        1,
+        "BSH-101-AI",
+        "Islamic Studies",
+        2,
+        "lecture",
+        "Mr. Habib Ullah"
+      ],
+      [
+        1,
+        "AI-PRECAL",
+        "Pre-Calculus for Pre-Medical Students",
+        3,
+        "lecture",
+        "Dr. Murtaza"
+      ],
+      [
+        3,
+        "AI-F26-COA",
+        "Computer Organization and Architecture",
+        3,
+        "lecture",
+        "Fahad Ali"
+      ],
+      [
+        3,
+        "AI-F26-COAL",
+        "Computer Organization and Architecture Lab",
+        1,
+        "lab",
+        "Fahad Ali"
+      ],
+      [
+        3,
+        "AI-F26-DBS",
+        "Database Systems",
+        3,
+        "lecture",
+        "Engr. Muhammad Ali"
+      ],
+      [
+        3,
+        "AI-F26-DBSL",
+        "Database Systems Lab",
+        1,
+        "lab",
+        "Engr. Muhammad Ali"
+      ],
+      [
+        3,
+        "AI-F26-MVC",
+        "Multivariable Calculus",
+        3,
+        "lecture",
+        "Spogmay Muhammad"
+      ],
+      [
+        3,
+        "AI-F26-PP",
+        "Professional Practices",
+        3,
+        "lecture",
+        "Miss Barkah Khan"
+      ],
+      [
+        3,
+        "AI-F26-DSA",
+        "Data Structures and Algorithms",
+        3,
+        "lecture",
+        "Umar Sadique"
+      ],
+      [
+        3,
+        "AI-F26-DSAL",
+        "Data Structures and Algorithms Lab",
+        1,
+        "lab",
+        "Ikram Ullah"
+      ],
+      [
+        3,
+        "AI-F26-FQ2",
+        "Fehm ul Quran II",
+        1,
+        "lecture",
+        "Mr. Muhammad Younas"
+      ]
+    ]
+  },
+  "MDSWE": {
+    "sections": {
+      "3": [
+        "A",
+        "B"
+      ],
+      "5": [
+        "A",
+        "B"
+      ],
+      "7": [
+        "A"
+      ]
+    },
+    "rooms": [
+      [
+        "SE-CR1",
+        "Software Classroom 1",
+        "lecture"
+      ],
+      [
+        "SE-CR2",
+        "Software Classroom 2",
+        "lecture"
+      ],
+      [
+        "SE-CR3",
+        "Software Classroom 3",
+        "lecture"
+      ],
+      [
+        "SE-CR4",
+        "Software Classroom 4",
+        "lecture"
+      ],
+      [
+        "SE-CR5",
+        "Software Classroom 5",
+        "lecture"
+      ],
+      [
+        "SE-PL1",
+        "Programming Lab 1",
+        "lab"
+      ],
+      [
+        "SE-PL2",
+        "Programming Lab 2",
+        "lab"
+      ],
+      [
+        "SE-SDL",
+        "System and Design Lab",
+        "lab"
+      ],
+      [
+        "SE-FYP",
+        "FYP Lab",
+        "lab"
+      ]
+    ],
+    "teachers": [
+      "Dr. Sohail Khan",
+      "Engr. Ziaullah",
+      "Dr. Ibrar Ali Shah",
+      "Engr. Farhan",
+      "Dr. Zafar Ali Shah",
+      "Dr. Mushtaq Ahmad",
+      "Dr. Shams ur Rahman",
+      "Engr. Muhammad Ishaq",
+      "Engr. Lubna Gul",
+      "Engr. Farhan Naeem",
+      "Dr. Fahimullah Khan",
+      "Engr. Imran Maqsood",
+      "Engr. Humayun",
+      "Concerned Project Supervisor"
+    ],
+    "courses": [
+      [
+        3,
+        "SE-202",
+        "DS&A: Data Structures and Algorithms",
+        3,
+        "lecture",
+        "Dr. Sohail Khan"
+      ],
+      [
+        3,
+        "SE-202L",
+        "DS&A: Data Structures and Algorithms lab",
+        1,
+        "lab",
+        "Engr. Ziaullah"
+      ],
+      [
+        3,
+        "SE-304",
+        "OS: Operating System",
+        3,
+        "lecture",
+        "Dr. Ibrar Ali Shah"
+      ],
+      [
+        3,
+        "SE-304L",
+        "OS: Operating System lab",
+        1,
+        "lab",
+        "Engr. Farhan"
+      ],
+      [
+        3,
+        "BSH-233",
+        "P&S: Probability & Statistics",
+        3,
+        "lecture",
+        "Dr. Zafar Ali Shah"
+      ],
+      [
+        3,
+        "SE-204",
+        "ISE: Introduction to Software Engineering",
+        3,
+        "lecture",
+        "Engr. Ziaullah"
+      ],
+      [
+        3,
+        "BSH-232",
+        "CVT: Complex Variables & Transforms",
+        3,
+        "lecture",
+        "Dr. Mushtaq Ahmad"
+      ],
+      [
+        5,
+        "SE-312",
+        "DAA: Design & Analysis of Algorithms",
+        3,
+        "lecture",
+        "Dr. Shams ur Rahman"
+      ],
+      [
+        5,
+        "SE-311",
+        "ES: Embedded Systems",
+        2,
+        "lecture",
+        "Engr. Muhammad Ishaq"
+      ],
+      [
+        5,
+        "SE-311L",
+        "ES: Embedded Systems lab",
+        1,
+        "lab",
+        "Engr. Muhammad Ishaq"
+      ],
+      [
+        5,
+        "SE-302",
+        "SDA: Software Design & Architecture",
+        2,
+        "lecture",
+        "Engr. Lubna Gul"
+      ],
+      [
+        5,
+        "SE-302L",
+        "SDA: Software Design & Architecture lab",
+        1,
+        "lab",
+        "Engr. Lubna Gul"
+      ],
+      [
+        5,
+        "BSH-311",
+        "TWPS: Technical Writing & Presentation Skills",
+        3,
+        "lecture",
+        "Engr. Farhan Naeem"
+      ],
+      [
+        5,
+        "SE-308",
+        "AI: Artificial Intelligence",
+        3,
+        "lecture",
+        "Dr. Fahimullah Khan"
+      ],
+      [
+        5,
+        "BSH-220",
+        "Principles of Management",
+        3,
+        "lecture",
+        "Engr. Imran Maqsood"
+      ],
+      [
+        7,
+        "SE-406",
+        "Formal Methods in Software Engineering",
+        3,
+        "lecture",
+        "Dr. Zafar Ali Shah"
+      ],
+      [
+        7,
+        "BSH-121",
+        "Economics",
+        2,
+        "lecture",
+        "Engr. Imran Maqsood"
+      ],
+      [
+        7,
+        "SE-412",
+        "Deep Learning",
+        2,
+        "lecture",
+        "Dr. Fahimullah Khan"
+      ],
+      [
+        7,
+        "SE-412L",
+        "Deep Learning Lab",
+        1,
+        "lab",
+        "Engr. Humayun"
+      ],
+      [
+        7,
+        "SE-417",
+        "Introduction to Data Analytics",
+        2,
+        "lecture",
+        "Dr. Zafar Ali Shah"
+      ],
+      [
+        7,
+        "SE-417L",
+        "Introduction to Data Analytics Lab",
+        1,
+        "lab",
+        "Engr. Humayun"
+      ],
+      [
+        7,
+        "SE-405A",
+        "Project",
+        3,
+        "lecture",
+        "Concerned Project Supervisor"
+      ]
+    ]
+  },
+  "CIVIL": {
+    "sections": {
+      "1": [
+        "A"
+      ],
+      "3": [
+        "A"
+      ],
+      "5": [
+        "A"
+      ],
+      "7": [
+        "A"
+      ]
+    },
+    "rooms": [
+      [
+        "CE-01",
+        "Civil Room CE-01",
+        "lecture"
+      ],
+      [
+        "CE-02",
+        "Civil Room CE-02",
+        "lecture"
+      ],
+      [
+        "CE-03",
+        "Civil Room CE-03",
+        "lecture"
+      ],
+      [
+        "CIV-DRAW",
+        "Drawing Lab",
+        "lab"
+      ],
+      [
+        "CIV-COMP",
+        "Civil Computer Lab",
+        "lab"
+      ],
+      [
+        "CIV-SOLID",
+        "Mechanics of Solid Lab",
+        "lab"
+      ],
+      [
+        "CIV-FLUID",
+        "Fluid Lab",
+        "lab"
+      ],
+      [
+        "CIV-SURVEY",
+        "Survey Lab",
+        "lab"
+      ],
+      [
+        "CIV-SOIL",
+        "Soil Mechanics and Highways Lab",
+        "lab"
+      ],
+      [
+        "CIV-MATERIAL",
+        "Material Testing Lab",
+        "lab"
+      ]
+    ],
+    "teachers": [
+      "Engr. Muhammad Yasir",
+      "Engr. Osama Farid",
+      "Dr. Muhammad Alam",
+      "Miss Laila Afridi",
+      "Mr. Muhammad Junaid Khan",
+      "Mr. Amir Ali Khan",
+      "Mr. Ameer Ul Mulk",
+      "Dr. Khalid Mahmood",
+      "Engr. Muhammad Haris",
+      "Engr. Fazle Qadar",
+      "Engr. Saba Khan",
+      "Engr. Maaz Amjad",
+      "Engr. Hazrat Bilal",
+      "Engr. Sami Ullah",
+      "Engr. Abdullah Jan",
+      "Engr. Muhammad Sheraz",
+      "Engr. Fahad Ur Rehman"
+    ],
+    "courses": [
+      [
+        1,
+        "CIV-F26-EDG",
+        "Engineering Drawing",
+        2,
+        "lecture",
+        "Engr. Muhammad Yasir"
+      ],
+      [
+        1,
+        "CIV-F26-EDGL",
+        "Engineering Drawing Lab",
+        1,
+        "lab",
+        "Engr. Muhammad Yasir"
+      ],
+      [
+        1,
+        "CIV-F26-ICT",
+        "Application of ICT",
+        2,
+        "lecture",
+        "Engr. Osama Farid"
+      ],
+      [
+        1,
+        "CIV-F26-ICTL",
+        "Application of ICT Lab",
+        1,
+        "lab",
+        "Engr. Osama Farid"
+      ],
+      [
+        1,
+        "CIV-F26-QR1",
+        "Quantitative Reasoning I",
+        3,
+        "lecture",
+        "Dr. Muhammad Alam"
+      ],
+      [
+        1,
+        "CIV-F26-FE",
+        "Functional English",
+        3,
+        "lecture",
+        "Miss Laila Afridi"
+      ],
+      [
+        1,
+        "CIV-F26-IS",
+        "Islamic Studies",
+        2,
+        "lecture",
+        "Mr. Muhammad Junaid Khan"
+      ],
+      [
+        1,
+        "CIV-F26-PS",
+        "Pakistan Study",
+        2,
+        "lecture",
+        "Mr. Amir Ali Khan"
+      ],
+      [
+        1,
+        "CIV-F26-OHS",
+        "Occupational Health and Safety",
+        1,
+        "lecture",
+        "Engr. Muhammad Haris"
+      ],
+      [
+        3,
+        "CIV-F26-MOS1",
+        "Mechanics of Solid I",
+        3,
+        "lecture",
+        "Dr. Khalid Mahmood"
+      ],
+      [
+        3,
+        "CIV-F26-MOS1L",
+        "Mechanics of Solid I Lab",
+        1,
+        "lab",
+        "Dr. Khalid Mahmood"
+      ],
+      [
+        3,
+        "CIV-F26-FM",
+        "Fluid Mechanics",
+        3,
+        "lecture",
+        "Engr. Muhammad Haris"
+      ],
+      [
+        3,
+        "CIV-F26-FML",
+        "Fluid Mechanics Lab",
+        1,
+        "lab",
+        "Engr. Fazle Qadar"
+      ],
+      [
+        3,
+        "CIV-F26-AC",
+        "Advanced Calculus",
+        3,
+        "lecture",
+        "Dr. Shazia Habib"
+      ],
+      [
+        3,
+        "CIV-F26-SA1",
+        "Structural Analysis I",
+        3,
+        "lecture",
+        "Dr. Wajid Ali"
+      ],
+      [
+        3,
+        "CIV-F26-GEO",
+        "Geology for Engineers",
+        2,
+        "lecture",
+        "Dr. Wajid Ali"
+      ],
+      [
+        3,
+        "CIV-F26-AES",
+        "Advanced Engineering Survey",
+        2,
+        "lecture",
+        "Engr. Hazrat Bilal"
+      ],
+      [
+        3,
+        "CIV-F26-AESL",
+        "Advanced Engineering Survey Lab",
+        1,
+        "lab",
+        "Engr. Fazle Qadar"
+      ],
+      [
+        3,
+        "CIV-F26-BIM",
+        "CAD and Introduction to BIM",
+        2,
+        "lecture",
+        "Engr. Sami Ullah"
+      ],
+      [
+        3,
+        "CIV-F26-BIML",
+        "CAD and Introduction to BIM Lab",
+        1,
+        "lab",
+        "Engr. Fahad Ur Rehman"
+      ],
+      [
+        5,
+        "CIV-F26-EW",
+        "Expository Writing",
+        3,
+        "lecture",
+        "Mr. Ameer Ul Mulk"
+      ],
+      [
+        5,
+        "CIV-F26-GE",
+        "Geotechnical Engineering",
+        3,
+        "lecture",
+        "Engr. Maaz Amjad"
+      ],
+      [
+        5,
+        "CIV-F26-GEL",
+        "Geotechnical Engineering Lab",
+        1,
+        "lab",
+        "Engr. Maaz Amjad"
+      ],
+      [
+        5,
+        "CIV-F26-AFM",
+        "Advanced Fluid Mechanics",
+        3,
+        "lecture",
+        "Engr. Saba Khan"
+      ],
+      [
+        5,
+        "CIV-F26-AFML",
+        "Advanced Fluid Mechanics Lab",
+        1,
+        "lab",
+        "Engr. Saba Khan"
+      ],
+      [
+        5,
+        "CIV-F26-RCD1",
+        "Reinforced Concrete Design I",
+        3,
+        "lecture",
+        "Engr. Sami Ullah"
+      ],
+      [
+        5,
+        "CIV-F26-RCD1L",
+        "Reinforced Concrete Design I Lab",
+        1,
+        "lab",
+        "Engr. Abdullah Jan"
+      ],
+      [
+        5,
+        "CIV-F26-NA",
+        "Numerical Analysis",
+        3,
+        "lecture",
+        "Mr. Abdul Kabir"
+      ],
+      [
+        7,
+        "CIV-F26-HIE",
+        "Hydraulics and Irrigation Engineering",
+        3,
+        "lecture",
+        "Engr. Saba Khan"
+      ],
+      [
+        7,
+        "CIV-F26-HIEL",
+        "Hydraulics and Irrigation Engineering Lab",
+        1,
+        "lab",
+        "Engr. Abdullah Jan"
+      ],
+      [
+        7,
+        "CIV-F26-RCD2",
+        "Reinforced Concrete Design II",
+        3,
+        "lecture",
+        "Engr. Sami Ullah"
+      ],
+      [
+        7,
+        "CIV-F26-RCD2L",
+        "Reinforced Concrete Design II Lab",
+        1,
+        "lab",
+        "Engr. Muhammad Sheraz"
+      ],
+      [
+        7,
+        "CIV-F26-EE",
+        "Engineering Economics",
+        2,
+        "lecture",
+        "Engr. Hazrat Bilal"
+      ],
+      [
+        7,
+        "CIV-F26-OB",
+        "Organizational Behaviour",
+        2,
+        "lecture",
+        "Engr. Muhammad Yasir"
+      ],
+      [
+        7,
+        "CIV-F26-TRW",
+        "Technical Report Writing and Presentation Skills",
+        2,
+        "lecture",
+        "Engr. Muhammad Haris"
+      ]
+    ]
+  },
+  "CS": {
+    "sections": {
+      "1": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "3": [
+        "A",
+        "B",
+        "C"
+      ],
+      "5": [
+        "AI",
+        "CS",
+        "DS"
+      ],
+      "7": [
+        "AI",
+        "CS",
+        "DS"
+      ]
+    },
+    "rooms": [
+      [
+        "CS-CR1",
+        "CS Classroom 1",
+        "lecture"
+      ],
+      [
+        "CS-CR2",
+        "CS Classroom 2",
+        "lecture"
+      ],
+      [
+        "CS-CR3",
+        "CS Classroom 3",
+        "lecture"
+      ],
+      [
+        "CS-CR4",
+        "CS Classroom 4",
+        "lecture"
+      ],
+      [
+        "CS-CR5",
+        "CS Classroom 5",
+        "lecture"
+      ],
+      [
+        "CS-CR6",
+        "CS Classroom 6",
+        "lecture"
+      ],
+      [
+        "CS-TED3",
+        "TED Classroom 3",
+        "lecture"
+      ],
+      [
+        "CS-TED4",
+        "TED Classroom 4",
+        "lecture"
+      ],
+      [
+        "CS-AIDS",
+        "AI and Data Science Lab",
+        "lab"
+      ],
+      [
+        "CS-COMP",
+        "Computer Lab CS",
+        "lab"
+      ]
+    ],
+    "teachers": [
+      "Ms. Faiza",
+      "Ms. Alishba",
+      "Mr. Talha Jan",
+      "Prof. Dr. Muhammad Usman",
+      "Ms. Hafsa",
+      "Dr. Qaiser",
+      "Mr. Fayaz",
+      "Ms. Laila",
+      "Dr. Ayesha",
+      "Mr. Fazli Amin",
+      "Dr. Murtaza",
+      "Mr. Shehzad",
+      "Ms. Afifa",
+      "Mr. Saboor",
+      "Mr. Saeed",
+      "Mr. Yousaf",
+      "Mr. Muneer",
+      "Dr. Raza",
+      "Mr. Ibraheem",
+      "Mr. Abdul Kabir",
+      "Ms. Shazia",
+      "Mr. Hasnain",
+      "Mr. Taseer",
+      "Mr. Irshad",
+      "Dr. Shams ur Rahman",
+      "Dr. Inayat",
+      "Ms. Spogmay",
+      "Mr. Zaheen",
+      "Mr. Daniyal",
+      "Dr. Majid",
+      "Dr. Shazia Habib",
+      "Dr. Hamid Ullah",
+      "Dr. Faheem Ullah"
+    ],
+    "courses": [
+      [
+        1,
+        "CS101",
+        "Application of Information and Communication Technology",
+        2,
+        "lecture",
+        "Ms. Faiza",
+        {
+          "A": "Ms. Faiza",
+          "B": "Ms. Alishba",
+          "C": "Ms. Alishba",
+          "D": "Ms. Alishba"
+        }
+      ],
+      [
+        1,
+        "CS101L",
+        "Application of Information and Communication Technology Lab",
+        1,
+        "lab",
+        "Ms. Faiza",
+        {
+          "A": "Ms. Faiza",
+          "B": "Mr. Talha Jan",
+          "C": "Mr. Talha Jan",
+          "D": "Ms. Alishba"
+        }
+      ],
+      [
+        1,
+        "CS102",
+        "Computer Programming",
+        3,
+        "lecture",
+        "Prof. Dr. Muhammad Usman",
+        {
+          "A": "Prof. Dr. Muhammad Usman",
+          "B": "Mr. Talha Jan",
+          "C": "Ms. Hafsa",
+          "D": "Ms. Faiza"
+        }
+      ],
+      [
+        1,
+        "CS102L",
+        "Computer Programming Lab",
+        1,
+        "lab",
+        "Ms. Faiza",
+        {
+          "A": "Ms. Faiza",
+          "B": "Mr. Talha Jan",
+          "C": "Ms. Hafsa",
+          "D": "Ms. Faiza"
+        }
+      ],
+      [
+        1,
+        "BSH130",
+        "Calculus and Analytical Geometry",
+        2,
+        "lecture",
+        "Dr. Qaiser",
+        {
+          "C": "Dr. Qaiser",
+          "D": "Dr. Qaiser"
+        }
+      ],
+      [
+        1,
+        "BSH112",
+        "Functional English",
+        3,
+        "lecture",
+        "Mr. Fayaz",
+        {
+          "A": "Mr. Fayaz",
+          "B": "Mr. Fayaz",
+          "C": "Ms. Laila",
+          "D": "Ms. Laila"
+        }
+      ],
+      [
+        1,
+        "BSH102",
+        "Pakistan Studies (Online Mode)",
+        2,
+        "lecture",
+        "Dr. Ayesha",
+        {
+          "A": "Dr. Ayesha",
+          "B": "Dr. Ayesha",
+          "C": "Mr. Fazli Amin",
+          "D": "Mr. Fazli Amin"
+        }
+      ],
+      [
+        1,
+        "CS-PRECAL",
+        "Pre Calculus",
+        3,
+        "lecture",
+        "Dr. Murtaza",
+        {
+          "A": "Dr. Murtaza",
+          "B": "Dr. Murtaza"
+        }
+      ],
+      [
+        3,
+        "CS201",
+        "Data Structure",
+        3,
+        "lecture",
+        "Mr. Shehzad",
+        {
+          "A": "Mr. Shehzad",
+          "B": "Mr. Shehzad",
+          "C": "Mr. Shehzad"
+        }
+      ],
+      [
+        3,
+        "CS201L",
+        "Data Structure Lab",
+        1,
+        "lab",
+        "Ms. Afifa",
+        {
+          "A": "Ms. Afifa",
+          "B": "Mr. Ibraheem",
+          "C": "Mr. Ibraheem"
+        }
+      ],
+      [
+        3,
+        "CS202",
+        "Computer Organization and Assembly Language",
+        3,
+        "lecture",
+        "Mr. Saboor",
+        {
+          "A": "Mr. Saboor",
+          "B": "Mr. Saboor",
+          "C": "Dr. Raza"
+        }
+      ],
+      [
+        3,
+        "CS202L",
+        "Computer Organization and Assembly Language Lab",
+        1,
+        "lab",
+        "Mr. Saboor",
+        {
+          "A": "Mr. Saboor",
+          "B": "Mr. Saboor",
+          "C": "Mr. Saboor"
+        }
+      ],
+      [
+        3,
+        "CS203",
+        "Database System",
+        3,
+        "lecture",
+        "Mr. Saeed",
+        {
+          "A": "Mr. Saeed",
+          "B": "Mr. Yousaf",
+          "C": "Mr. Muneer"
+        }
+      ],
+      [
+        3,
+        "CS203L",
+        "Database System Lab",
+        1,
+        "lab",
+        "Ms. Hafsa",
+        {
+          "A": "Ms. Hafsa",
+          "B": "Mr. Yousaf",
+          "C": "Ms. Hafsa"
+        }
+      ],
+      [
+        3,
+        "BSH240",
+        "Multivariable Calculus",
+        3,
+        "lecture",
+        "Mr. Abdul Kabir",
+        {
+          "A": "Mr. Abdul Kabir",
+          "B": "Mr. Abdul Kabir",
+          "C": "Mr. Abdul Kabir"
+        }
+      ],
+      [
+        3,
+        "BSH110X",
+        "Professional Practices",
+        2,
+        "lecture",
+        "Ms. Shazia",
+        {
+          "A": "Ms. Shazia",
+          "B": "Ms. Shazia",
+          "C": "Ms. Shazia"
+        }
+      ],
+      [
+        5,
+        "CS402",
+        "Web Design and Development",
+        3,
+        "lecture",
+        "Mr. Taseer",
+        {
+          "AI": "Mr. Taseer",
+          "CS": "Mr. Hasnain",
+          "DS": "Mr. Saeed"
+        }
+      ],
+      [
+        5,
+        "CS402L",
+        "Web Design and Development Lab",
+        1,
+        "lab",
+        "Mr. Taseer",
+        {
+          "AI": "Mr. Taseer",
+          "CS": "Mr. Taseer",
+          "DS": "Mr. Saeed"
+        }
+      ],
+      [
+        5,
+        "CS30X",
+        "Information Security",
+        3,
+        "lecture",
+        "Mr. Irshad",
+        {
+          "AI": "Mr. Irshad",
+          "CS": "Dr. Raza",
+          "DS": "Mr. Taseer"
+        }
+      ],
+      [
+        5,
+        "CS30XL",
+        "Information Security Lab",
+        1,
+        "lab",
+        "Mr. Irshad",
+        {
+          "AI": "Mr. Irshad",
+          "CS": "Mr. Taseer",
+          "DS": "Mr. Taseer"
+        }
+      ],
+      [
+        5,
+        "CS304",
+        "Theory of Automata",
+        2,
+        "lecture",
+        "Mr. Ibraheem",
+        {
+          "CS": "Mr. Ibraheem"
+        }
+      ],
+      [
+        5,
+        "CS5XX",
+        "Advance Database Management System",
+        3,
+        "lecture",
+        "Dr. Raza",
+        {
+          "CS": "Dr. Raza"
+        }
+      ],
+      [
+        5,
+        "CS5XXL",
+        "Advance Database Management System Lab",
+        1,
+        "lab",
+        "Dr. Raza",
+        {
+          "CS": "Dr. Raza"
+        }
+      ],
+      [
+        5,
+        "CSXX5",
+        "Computer Architecture",
+        3,
+        "lecture",
+        "Ms. Alishba",
+        {
+          "CS": "Ms. Alishba"
+        }
+      ],
+      [
+        5,
+        "CSXX5L",
+        "Computer Architecture Lab",
+        1,
+        "lab",
+        "Ms. Alishba",
+        {
+          "CS": "Ms. Alishba"
+        }
+      ],
+      [
+        5,
+        "CS204",
+        "Analysis of Algorithm",
+        3,
+        "lecture",
+        "Dr. Shams ur Rahman",
+        {
+          "AI": "Dr. Shams ur Rahman",
+          "CS": "Mr. Ibraheem",
+          "DS": "Dr. Shams ur Rahman"
+        }
+      ],
+      [
+        5,
+        "AI304",
+        "Knowledge Representation and Reasoning",
+        3,
+        "lecture",
+        "Mr. Muneer",
+        {
+          "AI": "Mr. Muneer"
+        }
+      ],
+      [
+        5,
+        "AI305",
+        "Programming for Artificial Intelligence",
+        3,
+        "lecture",
+        "Mr. Muneer",
+        {
+          "AI": "Mr. Muneer"
+        }
+      ],
+      [
+        5,
+        "AI305L",
+        "Programming for Artificial Intelligence Lab",
+        1,
+        "lab",
+        "Ms. Afifa",
+        {
+          "AI": "Ms. Afifa"
+        }
+      ],
+      [
+        5,
+        "AI307",
+        "Machine Learning",
+        3,
+        "lecture",
+        "Dr. Inayat",
+        {
+          "AI": "Dr. Inayat"
+        }
+      ],
+      [
+        5,
+        "AI307L",
+        "Machine Learning Lab",
+        1,
+        "lab",
+        "Dr. Inayat",
+        {
+          "AI": "Dr. Inayat"
+        }
+      ],
+      [
+        5,
+        "DS305",
+        "Advanced Statistics",
+        2,
+        "lecture",
+        "Ms. Spogmay",
+        {
+          "DS": "Ms. Spogmay"
+        }
+      ],
+      [
+        5,
+        "DS304",
+        "Introduction to Data Science",
+        3,
+        "lecture",
+        "Mr. Zaheen",
+        {
+          "DS": "Mr. Zaheen"
+        }
+      ],
+      [
+        5,
+        "DS304L",
+        "Introduction to Data Science Lab",
+        1,
+        "lab",
+        "Mr. Zaheen",
+        {
+          "DS": "Mr. Zaheen"
+        }
+      ],
+      [
+        5,
+        "DS402",
+        "Data Visualization",
+        3,
+        "lecture",
+        "Mr. Daniyal",
+        {
+          "DS": "Mr. Daniyal"
+        }
+      ],
+      [
+        5,
+        "DS402L",
+        "Data Visualization Lab",
+        1,
+        "lab",
+        "Mr. Daniyal",
+        {
+          "DS": "Mr. Daniyal"
+        }
+      ],
+      [
+        7,
+        "CS417",
+        "Cloud Computing",
+        3,
+        "lecture",
+        "Mr. Yousaf",
+        {
+          "AI": "Mr. Hasnain",
+          "CS": "Mr. Yousaf",
+          "DS": "Mr. Saeed"
+        }
+      ],
+      [
+        7,
+        "CS417L",
+        "Cloud Computing Lab",
+        1,
+        "lab",
+        "Mr. Yousaf",
+        {
+          "AI": "Mr. Yousaf",
+          "CS": "Mr. Yousaf",
+          "DS": "Mr. Saeed"
+        }
+      ],
+      [
+        7,
+        "CS306",
+        "Compiler Construction",
+        3,
+        "lecture",
+        "Mr. Ibraheem",
+        {
+          "CS": "Mr. Ibraheem"
+        }
+      ],
+      [
+        7,
+        "CS7XX",
+        "Machine Learning",
+        3,
+        "lecture",
+        "Dr. Inayat",
+        {
+          "CS": "Dr. Inayat"
+        }
+      ],
+      [
+        7,
+        "CS7XXL",
+        "Machine Learning Lab",
+        1,
+        "lab",
+        "Dr. Inayat",
+        {
+          "CS": "Dr. Inayat"
+        }
+      ],
+      [
+        7,
+        "CSXX7",
+        "Internet of Things",
+        2,
+        "lecture",
+        "Dr. Shams ur Rahman",
+        {
+          "CS": "Dr. Shams ur Rahman"
+        }
+      ],
+      [
+        7,
+        "AI-401",
+        "Computer Vision",
+        3,
+        "lecture",
+        "Mr. Daniyal",
+        {
+          "AI": "Mr. Daniyal"
+        }
+      ],
+      [
+        7,
+        "AI-401L",
+        "Computer Vision Lab",
+        1,
+        "lab",
+        "Mr. Daniyal",
+        {
+          "AI": "Mr. Daniyal"
+        }
+      ],
+      [
+        7,
+        "AI-402",
+        "Natural Language Processing",
+        2,
+        "lecture",
+        "Mr. Zaheen",
+        {
+          "AI": "Mr. Zaheen"
+        }
+      ],
+      [
+        7,
+        "DS-401",
+        "Big Data Analytics",
+        3,
+        "lecture",
+        "Mr. Zaheen",
+        {
+          "DS": "Mr. Zaheen"
+        }
+      ],
+      [
+        7,
+        "DS-401L",
+        "Big Data Analytics Lab",
+        1,
+        "lab",
+        "Mr. Zaheen",
+        {
+          "DS": "Mr. Zaheen"
+        }
+      ],
+      [
+        7,
+        "DS-402",
+        "Data Visualization",
+        3,
+        "lecture",
+        "Mr. Daniyal",
+        {
+          "DS": "Mr. Daniyal"
+        }
+      ],
+      [
+        7,
+        "DS-402L",
+        "Data Visualization Lab",
+        1,
+        "lab",
+        "Mr. Daniyal",
+        {
+          "DS": "Mr. Daniyal"
+        }
+      ],
+      [
+        7,
+        "BSH7XX",
+        "Human Resource Management",
+        3,
+        "lecture",
+        "Dr. Majid",
+        {
+          "AI": "Dr. Majid",
+          "DS": "Dr. Majid"
+        }
+      ]
+    ]
+  },
+  "EE": {
+    "sections": {
+      "3": [
+        "A",
+        "B"
+      ],
+      "5": [
+        "A",
+        "B"
+      ],
+      "7": [
+        "P",
+        "C"
+      ]
+    },
+    "rooms": [
+      [
+        "EE-A004",
+        "Lecture Theatre EED A-004",
+        "lecture"
+      ],
+      [
+        "EE-A102",
+        "EED Room A102",
+        "lecture"
+      ],
+      [
+        "EE-A103",
+        "EED Room A103",
+        "lecture"
+      ],
+      [
+        "EE-A108",
+        "PSA Lab EED A108",
+        "lab"
+      ],
+      [
+        "EE-A109",
+        "DLD Lab EED A109",
+        "lab"
+      ],
+      [
+        "EE-A110",
+        "Control System Lab A110",
+        "lab"
+      ],
+      [
+        "EE-A111",
+        "Machine Lab A111",
+        "lab"
+      ],
+      [
+        "EE-A112",
+        "Power Electronics Lab A112",
+        "lab"
+      ],
+      [
+        "EE-A113",
+        "Communication Lab A113",
+        "lab"
+      ],
+      [
+        "EE-A114",
+        "Workshop Lab A114",
+        "lab"
+      ]
+    ],
+    "teachers": [
+      "Dr. Ikram Ullah",
+      "Mr. Salman Nasir",
+      "Engr. Bilal Khan",
+      "Engr. Salman Saleem",
+      "Engr. Mian Amir Ayaz",
+      "Dr. Fazal Muhammad",
+      "Dr. Aimal Daud",
+      "Dr. Haseeb Ahmad Khan",
+      "Engr. Zaid Yousaf",
+      "M. Awais Khan",
+      "Dr. Ajmal Farooq",
+      "Prof. Dr. Imran Khan",
+      "Dr. Gulrukh",
+      "Dr. Shayan Tariq Jan",
+      "Dr. Jawad Ali"
+    ],
+    "courses": [
+      [
+        3,
+        "BSH-340",
+        "Complex Variables and Transforms",
+        3,
+        "lecture",
+        "Dr. Ikram Ullah"
+      ],
+      [
+        3,
+        "BSH-210",
+        "Communication and Presentation Skills",
+        3,
+        "lecture",
+        "Mr. Salman Nasir"
+      ],
+      [
+        3,
+        "EE-201",
+        "Digital Logic Design",
+        3,
+        "lecture",
+        "Engr. Bilal Khan"
+      ],
+      [
+        3,
+        "EE-201L",
+        "Digital Logic Design Lab",
+        1,
+        "lab",
+        "Engr. Salman Saleem"
+      ],
+      [
+        3,
+        "EE-203",
+        "Data Structures and Algorithms",
+        3,
+        "lecture",
+        "Engr. Mian Amir Ayaz"
+      ],
+      [
+        3,
+        "EE-203L",
+        "Data Structures and Algorithms Lab",
+        1,
+        "lab",
+        "Engr. Mian Amir Ayaz"
+      ],
+      [
+        3,
+        "EE-204",
+        "Electrical Network Analysis",
+        3,
+        "lecture",
+        "Dr. Fazal Muhammad"
+      ],
+      [
+        3,
+        "EE-204L",
+        "Electrical Network Analysis Lab",
+        1,
+        "lab",
+        "Engr. Bilal Khan"
+      ],
+      [
+        5,
+        "EE-302",
+        "Electromagnetic Field Theory",
+        3,
+        "lecture",
+        "Dr. Aimal Daud"
+      ],
+      [
+        5,
+        "EE-303",
+        "Communication Systems",
+        3,
+        "lecture",
+        "Dr. Haseeb Ahmad Khan"
+      ],
+      [
+        5,
+        "EE-303L",
+        "Communication Systems Lab",
+        1,
+        "lab",
+        "Dr. Haseeb Ahmad Khan"
+      ],
+      [
+        5,
+        "EE-304",
+        "Linear Control System",
+        3,
+        "lecture",
+        "Dr. Aimal Daud"
+      ],
+      [
+        5,
+        "EE-304L",
+        "Linear Control System Lab",
+        1,
+        "lab",
+        "Dr. Aimal Daud"
+      ],
+      [
+        5,
+        "EE-301",
+        "Electrical Machines",
+        3,
+        "lecture",
+        "Engr. Zaid Yousaf"
+      ],
+      [
+        5,
+        "EE-301L",
+        "Electrical Machines Lab",
+        1,
+        "lab",
+        "Engr. Bilal Khan"
+      ],
+      [
+        5,
+        "ME-305",
+        "Engineering Mechanics",
+        3,
+        "lecture",
+        "M. Awais Khan"
+      ],
+      [
+        7,
+        "EE-405",
+        "Power Electronics",
+        3,
+        "lecture",
+        "Dr. Ajmal Farooq"
+      ],
+      [
+        7,
+        "EE-405L",
+        "Power Electronics Lab",
+        1,
+        "lab",
+        "Dr. Ajmal Farooq"
+      ],
+      [
+        7,
+        "EE-413",
+        "Digital Signal Processing",
+        3,
+        "lecture",
+        "Prof. Dr. Imran Khan"
+      ],
+      [
+        7,
+        "EE-413L",
+        "Digital Signal Processing Lab",
+        1,
+        "lab",
+        "Dr. Jawad Ali"
+      ],
+      [
+        7,
+        "EE-F26-HVE",
+        "High Voltage Engineering",
+        3,
+        "lecture",
+        "Dr. Gulrukh"
+      ],
+      [
+        7,
+        "EE-F26-HVEL",
+        "High Voltage Engineering Lab",
+        1,
+        "lab",
+        "Dr. Gulrukh"
+      ],
+      [
+        7,
+        "EE-401",
+        "Instrumentation and Measurements",
+        3,
+        "lecture",
+        "Dr. Shayan Tariq Jan"
+      ],
+      [
+        7,
+        "EE-401L",
+        "Instrumentation and Measurements Lab",
+        1,
+        "lab",
+        "Dr. Shayan Tariq Jan"
+      ],
+      [
+        7,
+        "EE-F26-DC",
+        "Digital Communications",
+        3,
+        "lecture",
+        "Dr. Jawad Ali"
+      ],
+      [
+        7,
+        "EE-F26-DCL",
+        "Digital Communications Lab",
+        1,
+        "lab",
+        "Dr. Jawad Ali"
+      ]
+    ]
+  },
+  "MECH": {
+    "sections": {
+      "1": [
+        "A"
+      ],
+      "3": [
+        "A"
+      ],
+      "5": [
+        "A"
+      ],
+      "7": [
+        "A"
+      ]
+    },
+    "rooms": [
+      [
+        "ME-01",
+        "Mechanical Room ME-01",
+        "lecture"
+      ],
+      [
+        "ME-02",
+        "Mechanical Room ME-02",
+        "lecture"
+      ],
+      [
+        "ME-03",
+        "Mechanical Room ME-03",
+        "lecture"
+      ],
+      [
+        "ME-04",
+        "Mechanical Room ME-04",
+        "lecture"
+      ],
+      [
+        "ME-DRAW",
+        "Drawing and CAD Lab",
+        "lab"
+      ],
+      [
+        "ME-PHYS",
+        "Physics Lab",
+        "lab"
+      ],
+      [
+        "ME-EM",
+        "Engineering Mechanics Lab",
+        "lab"
+      ],
+      [
+        "ME-FLUID",
+        "Mechanical Fluid Lab",
+        "lab"
+      ],
+      [
+        "ME-CAD",
+        "Mechanical CAD Lab",
+        "lab"
+      ],
+      [
+        "ME-VIB",
+        "Vibrations Lab",
+        "lab"
+      ],
+      [
+        "ME-FYP",
+        "Mechanical FYP Room",
+        "lecture"
+      ]
+    ],
+    "teachers": [
+      "Engr. Zia Ur Rehman",
+      "Engr. Mushaf Ur Rehman Khan",
+      "Engr. Malik Sarmad Zahid",
+      "Dr. Muhammad Shakeel",
+      "Mr. Salman",
+      "Engr. Muhammad Awais Khan",
+      "Engr. Muhammad Arsalan",
+      "Engr. Faiq Said",
+      "Dr. Asad Ullah",
+      "Engr. Nasir Akbar",
+      "Engr. Abdul Hameed Khan",
+      "Engr. Afnan H. Khan"
+    ],
+    "courses": [
+      [
+        1,
+        "ME101",
+        "Engineering Drawing and Graphics",
+        2,
+        "lecture",
+        "Engr. Zia Ur Rehman"
+      ],
+      [
+        1,
+        "ME101L",
+        "Engineering Drawing and Graphics Lab",
+        1,
+        "lab",
+        "Engr. Mushaf Ur Rehman Khan"
+      ],
+      [
+        1,
+        "CS101-ME",
+        "Application of ICT",
+        2,
+        "lecture",
+        "Engr. Malik Sarmad Zahid"
+      ],
+      [
+        1,
+        "CS101L-ME",
+        "Application of ICT Lab",
+        1,
+        "lab",
+        "Dr. Muhammad Shakeel"
+      ],
+      [
+        1,
+        "BSH101",
+        "Islamic Studies",
+        2,
+        "lecture",
+        "Mr. Muhammad Younas"
+      ],
+      [
+        1,
+        "BSH106",
+        "Functional English",
+        3,
+        "lecture",
+        "Mr. Salman"
+      ],
+      [
+        1,
+        "BSH120",
+        "Applied Physics",
+        2,
+        "lecture",
+        "Engr. Muhammad Awais Khan"
+      ],
+      [
+        1,
+        "BSH120L",
+        "Applied Physics Lab",
+        1,
+        "lab",
+        "Engr. Mushaf Ur Rehman Khan"
+      ],
+      [
+        1,
+        "BSH130",
+        "Calculus and Analytical Geometry",
+        3,
+        "lecture",
+        "Dr. Qaiser"
+      ],
+      [
+        3,
+        "ME201",
+        "Engineering Mechanics II",
+        2,
+        "lecture",
+        "Engr. Muhammad Arsalan"
+      ],
+      [
+        3,
+        "ME201L",
+        "Engineering Mechanics Lab",
+        1,
+        "lab",
+        "Engr. Faiq Said"
+      ],
+      [
+        3,
+        "ME202",
+        "Mechanics of Materials I",
+        3,
+        "lecture",
+        "Dr. Asad Ullah"
+      ],
+      [
+        3,
+        "ME203",
+        "Thermodynamics I",
+        3,
+        "lecture",
+        "Engr. Zia Ur Rehman"
+      ],
+      [
+        3,
+        "CS102-ME",
+        "Computer Programming",
+        2,
+        "lecture",
+        "Dr. Hamid Ullah"
+      ],
+      [
+        3,
+        "CS102L-ME",
+        "Computer Programming Lab",
+        1,
+        "lab",
+        "Dr. Faheem Ullah"
+      ],
+      [
+        3,
+        "BSH232-ME",
+        "Complex Variables and Transforms",
+        3,
+        "lecture",
+        "Mr. Abdul Kabir"
+      ],
+      [
+        3,
+        "BSH108",
+        "Ideology and Constitution of Pakistan",
+        2,
+        "lecture",
+        "Ms. Shazia"
+      ],
+      [
+        3,
+        "BSH206",
+        "Fehm ul Quran II",
+        1,
+        "lecture",
+        "Mr. Muhammad Younas"
+      ],
+      [
+        5,
+        "ME301",
+        "Mechanics of Machines",
+        2,
+        "lecture",
+        "Engr. Nasir Akbar"
+      ],
+      [
+        5,
+        "ME302",
+        "Fluid Mechanics II",
+        2,
+        "lecture",
+        "Engr. Zia Ur Rehman"
+      ],
+      [
+        5,
+        "ME302L",
+        "Fluid Mechanics II Lab",
+        1,
+        "lab",
+        "Engr. Abdul Hameed Khan"
+      ],
+      [
+        5,
+        "ME303",
+        "Machine Design I",
+        3,
+        "lecture",
+        "Engr. Malik Sarmad Zahid"
+      ],
+      [
+        5,
+        "ME304",
+        "Instrumentation and Measurement",
+        2,
+        "lecture",
+        "Engr. Nasir Akbar"
+      ],
+      [
+        5,
+        "CS3XX",
+        "Applied Artificial Intelligence and Machine Learning",
+        2,
+        "lecture",
+        "Engr. Muhammad Arsalan"
+      ],
+      [
+        5,
+        "CS3XXL",
+        "Applied Artificial Intelligence and Machine Learning Lab",
+        1,
+        "lab",
+        "Engr. Muhammad Arsalan"
+      ],
+      [
+        5,
+        "ME305-ME",
+        "Heat and Mass Transfer",
+        3,
+        "lecture",
+        "Engr. Afnan H. Khan"
+      ],
+      [
+        5,
+        "BSH408",
+        "Organizational Behaviour",
+        2,
+        "lecture",
+        "Engr. Afnan H. Khan"
+      ],
+      [
+        7,
+        "ME401",
+        "Mechanical Vibrations",
+        3,
+        "lecture",
+        "Engr. Nasir Akbar"
+      ],
+      [
+        7,
+        "ME425",
+        "Maintenance Engineering",
+        2,
+        "lecture",
+        "Dr. Muhammad Shakeel"
+      ],
+      [
+        7,
+        "ME402",
+        "Internal Combustion Engines",
+        3,
+        "lecture",
+        "Engr. Malik Sarmad Zahid"
+      ],
+      [
+        7,
+        "ME401L",
+        "Mechanisms and Mechanical Vibrations Lab",
+        1,
+        "lab",
+        "Engr. Abdul Hameed Khan"
+      ],
+      [
+        7,
+        "BSH234",
+        "Numerical Computation",
+        2,
+        "lecture",
+        "Dr. Shazia Habib"
+      ],
+      [
+        7,
+        "BSH234L",
+        "Numerical Computation Lab",
+        1,
+        "lab",
+        "Engr. Faiq Said"
+      ],
+      [
+        7,
+        "CE117",
+        "Occupational Health and Safety",
+        1,
+        "lecture",
+        "Engr. Afnan H. Khan"
+      ]
+    ]
+  }
+}

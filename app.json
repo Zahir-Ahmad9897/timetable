@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "irid.ai Timetable",
+    "slug": "iridai-timetable",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#F5F7F6"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ai.irid.timetable"
+    },
+    "android": {
+      "package": "ai.irid.timetable",
+      "adaptiveIcon": {
+        "backgroundColor": "#0B5D43"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "experiments": {
+      "baseUrl": "/timetable"
+    },
+    "plugins": [
+      "expo-document-picker",
+      "expo-sharing",
+      "expo-status-bar"
+    ]
+  }
+}

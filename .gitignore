@@ -1,0 +1,9 @@
+node_modules/
+.expo/
+dist/
+dist-check/
+.expo-export*/
+web-build/
+coverage/
+.test-build/
+*.log

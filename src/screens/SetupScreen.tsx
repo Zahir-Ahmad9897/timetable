@@ -1,0 +1,161 @@
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { BackHandler, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useApp } from '../context/AppContext';
+import { Assignment, Course, DAYS, Department, Room, Section, Semester, Teacher, Workspace, createId } from '../domain/types';
+import { validateWorkspace } from '../domain/validation';
+import { colors, radius, space, type } from '../theme';
+import { Banner, Button, Card, ChipBar, EmptyState, Field, PageIntro, Pagination, SearchField, Select, StatusPill } from '../components/ui';
+import { usePaginatedRecords } from '../hooks/usePaginatedRecords';
+import { confirmDestructive } from '../platform/confirm';
+
+type CollectionKey = 'departments' | 'semesters' | 'sections' | 'courses' | 'teachers' | 'assignments' | 'rooms';
+type SetupPage = 'home' | CollectionKey | 'settings';
+type ResourceRecord = Department | Semester | Section | Course | Teacher | Assignment | Room;
+
+const PAGE_SIZE = 10;
+const resourcePages: { key: Exclude<SetupPage, 'home'>; title: string; singular: string; detail: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: 'departments', title: 'Departments', singular: 'department', detail: 'Owning academic units', icon: 'business-outline' },
+  { key: 'semesters', title: 'Semesters', singular: 'semester', detail: 'Levels and active weekdays', icon: 'layers-outline' },
+  { key: 'sections', title: 'Sections', singular: 'section', detail: 'Class groups and student counts', icon: 'people-outline' },
+  { key: 'courses', title: 'Courses', singular: 'course', detail: 'Duration, frequency, and room type', icon: 'book-outline' },
+  { key: 'teachers', title: 'Teachers', singular: 'teacher', detail: 'Home unit and scheduling preferences', icon: 'person-outline' },
+  { key: 'assignments', title: 'Assignments', singular: 'assignment', detail: 'Teacher, course, semester, and section', icon: 'git-branch-outline' },
+  { key: 'rooms', title: 'Rooms & labs', singular: 'room or lab', detail: 'Capacity and borrowing rules', icon: 'desktop-outline' },
+  { key: 'settings', title: 'Teaching day', singular: 'setting', detail: 'Hours and protected break', icon: 'time-outline' },
+];
+
+function removeWithDependents(workspace: Workspace, key: CollectionKey, id: string): Workspace {
+  const next = { ...workspace, [key]: workspace[key].filter((item) => item.id !== id), generation: null } as Workspace;
+  if (key === 'departments') {
+    const semesterIds = new Set(next.semesters.filter((item) => item.departmentId === id).map((item) => item.id));
+    next.semesters = next.semesters.filter((item) => item.departmentId !== id);
+    next.sections = next.sections.filter((item) => !semesterIds.has(item.semesterId));
+    next.courses = next.courses.filter((item) => item.departmentId !== id);
+    next.teachers = next.teachers.filter((item) => item.departmentId !== id);
+    next.rooms = next.rooms.filter((item) => item.departmentId !== id).map((room) => ({ ...room, borrowableByDepartmentIds: room.borrowableByDepartmentIds?.filter((departmentId) => departmentId !== id) }));
+  }
+  if (key === 'semesters') next.sections = next.sections.filter((item) => item.semesterId !== id);
+  const teacherIds = new Set(next.teachers.map((item) => item.id));
+  const courseIds = new Set(next.courses.map((item) => item.id));
+  const semesterIds = new Set(next.semesters.map((item) => item.id));
+  const sectionIds = new Set(next.sections.map((item) => item.id));
+  next.assignments = next.assignments.filter((item) => teacherIds.has(item.teacherId) && courseIds.has(item.courseId) && semesterIds.has(item.semesterId) && (!item.sectionId || sectionIds.has(item.sectionId)));
+  return next;
+}
+
+export default function SetupScreen() {
+  const app = useApp();
+  const { workspace, dataSource, switchDataSource, restoreSource, update, save, saving, dirty, message, error, importJson, exportJson, loadSample } = app;
+  const [page, setPage] = useState<SetupPage>('home');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const issues = useMemo(() => validateWorkspace(workspace), [workspace]);
+
+  const goHome = () => { setEditingId(null); setPage('home'); };
+  useEffect(() => { const listener = BackHandler.addEventListener('hardwareBackPress', () => { if (editingId) { setEditingId(null); return true; } if (page !== 'home') { goHome(); return true; } return false; }); return () => listener.remove(); }, [editingId, page]);
+
+  const patch = <K extends CollectionKey>(key: K, id: string, values: Partial<Workspace[K][number]>) => update((current) => ({ ...current, [key]: current[key].map((item) => item.id === id ? { ...item, ...values } : item), generation: null } as Workspace));
+  const add = (key: CollectionKey) => {
+    const id = createId(key.slice(0, -1));
+    update((current) => {
+      const departmentId = current.departments[0]?.id || '';
+      const semesterId = current.semesters[0]?.id || '';
+      const defaults: Record<CollectionKey, ResourceRecord> = {
+        departments: { id, code: '', name: '' },
+        semesters: { id, departmentId, number: 1, active: true, activeWeekdays: [1, 2, 3, 4, 5] },
+        sections: { id, semesterId, code: 'A', studentCount: 40 },
+        courses: { id, departmentId, code: '', name: '', semesterNumber: 1, sessionHours: 1.5, sessionsPerWeek: 2, type: 'lecture' },
+        teachers: { id, name: '', departmentId, schedulingType: 'primary', preferredStart: '', preferredEnd: '', preferencePriority: 'low', maxDailyHours: 5 },
+        assignments: { id, teacherId: current.teachers[0]?.id || '', courseId: '', semesterId, sectionId: '', role: 'primary' },
+        rooms: { id, departmentId, code: '', name: '', type: 'lecture', capacity: 40, borrowable: false },
+      };
+      return { ...current, [key]: [...current[key], defaults[key]], generation: null } as Workspace;
+    });
+    setEditingId(id);
+  };
+  const remove = (key: CollectionKey, id: string) => confirmDestructive('Delete this record?', 'Dependent assignments and records will also be removed. This cannot be undone after saving.', 'Delete', () => { update((current) => removeWithDependents(current, key, id)); setEditingId(null); });
+
+  if (page === 'home') return <WorkspaceHome {...{ workspace, dataSource, issues, dirty, saving, message, error, switchDataSource, restoreSource, update, save, importJson, exportJson, loadSample, setPage }} />;
+
+  const pageMeta = resourcePages.find((item) => item.key === page)!;
+  if (page === 'settings') return <PageFrame title={pageMeta.title} detail={pageMeta.detail} onBack={goHome}>
+    <Banner type="info" text="Changes invalidate the current draft because every session must remain inside the teaching window." />
+    <Card><View style={styles.fields}><Field label="Day starts (HH:MM)" value={workspace.daySettings.dayStart} onChangeText={(dayStart) => update((current) => ({ ...current, daySettings: { ...current.daySettings, dayStart }, generation: null }))} /><Field label="Break starts (HH:MM)" value={workspace.daySettings.breakStart} onChangeText={(breakStart) => update((current) => ({ ...current, daySettings: { ...current.daySettings, breakStart }, generation: null }))} /><Field label="Break minutes" keyboardType="number-pad" value={String(workspace.daySettings.breakDurationMinutes)} onChangeText={(value) => update((current) => ({ ...current, daySettings: { ...current.daySettings, breakDurationMinutes: Number(value) || 0 }, generation: null }))} /><Field label="Day ends (HH:MM)" value={workspace.daySettings.dayEnd} onChangeText={(dayEnd) => update((current) => ({ ...current, daySettings: { ...current.daySettings, dayEnd }, generation: null }))} /></View></Card>
+  </PageFrame>;
+
+  return <ResourceRegister page={page} title={pageMeta.title} singular={pageMeta.singular} detail={pageMeta.detail} workspace={workspace} issues={issues} editingId={editingId} setEditingId={setEditingId} onBack={goHome} onAdd={() => add(page)} onDelete={(id) => remove(page, id)} patch={patch} />;
+}
+
+type HomeProps = Pick<ReturnType<typeof useApp>, 'workspace' | 'dataSource' | 'dirty' | 'saving' | 'message' | 'error' | 'switchDataSource' | 'restoreSource' | 'update' | 'save' | 'importJson' | 'exportJson' | 'loadSample'> & { issues: ReturnType<typeof validateWorkspace>; setPage: (page: SetupPage) => void };
+function WorkspaceHome({ workspace, dataSource, issues, dirty, saving, message, error, switchDataSource, restoreSource, update, save, importJson, exportJson, loadSample, setPage }: HomeProps) {
+  return <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
+    <View style={styles.introRow}><PageIntro eyebrow="ACADEMIC OPERATIONS" title="Scheduling workspace" detail="Review source data, resolve readiness issues, then generate a validated timetable." /><StatusPill label={dirty ? 'Unsaved' : 'Saved'} tone={dirty ? 'warning' : 'success'} /></View>
+    {error ? <Banner type="error" text={`${error} Your in-memory workspace was kept.`} /> : null}{message ? <Banner type="success" text={message} /> : null}
+    <View style={styles.metricGrid}><Metric label="Resources" value={String(workspace.departments.length + workspace.courses.length + workspace.teachers.length + workspace.rooms.length)} icon="library-outline" /><Metric label="Assignments" value={String(workspace.assignments.length)} icon="git-branch-outline" /><Metric label="Readiness" value={issues.length ? `${issues.length} issue${issues.length === 1 ? '' : 's'}` : 'Ready'} icon={issues.length ? 'warning-outline' : 'checkmark-circle-outline'} tone={issues.length ? 'warning' : 'success'} /></View>
+    <Card><View style={styles.cardHeading}><View style={styles.cardHeadingText}><Text style={styles.cardTitle}>Data source</Text><Text style={styles.cardDetail}>Organization and manual workspaces are stored separately.</Text></View><StatusPill label={dataSource === 'organization' ? 'UET Mardan' : 'Manual'} tone="info" /></View><ChipBar accessibilityLabel="Choose data source" selected={dataSource} onSelect={(value) => { void switchDataSource(value as 'organization' | 'manual'); }} options={[{ label: 'UET Mardan org data', value: 'organization' }, { label: 'Manual data', value: 'manual' }]} />{dataSource === 'organization' ? <Banner type="warning" text="Fall 2026 data is bundled. Enrollment totals were unavailable, so review the 30-student section assumptions." /> : <Banner type="info" text="Manual data is independent and can be entered here or imported from JSON." />}</Card>
+    <Card><View style={styles.cardHeading}><View style={{ flex: 1 }}><Text style={styles.cardTitle}>{dataSource === 'organization' ? 'UET Mardan working copy' : 'Manual workspace'}</Text><Text style={styles.cardDetail}>Local-only storage. Data leaves the device only when you export it.</Text></View></View><Field label="Institution name" value={workspace.institutionName} onChangeText={(institutionName) => update((current) => ({ ...current, institutionName }))} /><Button label={dirty ? 'Save workspace' : 'Workspace saved'} icon="save-outline" onPress={() => { void save(); }} loading={saving} disabled={!dirty} /><View style={styles.actions}><Button label="Import JSON" icon="download-outline" variant="secondary" onPress={importJson} /><Button label="Export JSON" icon="share-outline" variant="secondary" onPress={exportJson} /></View><View style={styles.actions}>{dataSource === 'manual' ? <Button label="Load sample" variant="quiet" onPress={loadSample} /> : null}<Button label={dataSource === 'organization' ? 'Restore bundled data' : 'Clear manual data'} variant="danger" onPress={restoreSource} /></View></Card>
+    <View><Text accessibilityRole="header" style={styles.sectionHeading}>Resource registers</Text><Text style={styles.sectionDetail}>Open a register to search, page through summaries, and edit one record at a time.</Text></View>
+    <View style={styles.resourceGrid}>{resourcePages.map((item) => { const count = item.key === 'settings' ? undefined : workspace[item.key].length; const issueKind = item.key === 'settings' ? 'settings' : item.key === 'semesters' ? 'semester' : item.key.slice(0, -1); const issueCount = issues.filter((issue) => issue.kind === issueKind).length; return <Pressable key={item.key} accessibilityRole="button" accessibilityLabel={`Open ${item.title}`} onPress={() => setPage(item.key)} style={({ pressed }) => [styles.resourceCard, pressed && styles.pressed]}><View style={styles.resourceIcon}><Ionicons name={item.icon} size={18} color={colors.ink} /></View><View style={{ flex: 1 }}><Text style={styles.resourceTitle}>{item.title}</Text><Text style={styles.resourceDetail}>{item.detail}</Text></View>{issueCount ? <StatusPill label={`${issueCount} issue${issueCount === 1 ? '' : 's'}`} tone="danger" /> : count !== undefined ? <StatusPill label={String(count)} /> : null}<Ionicons name="chevron-forward" size={16} color={colors.subtle} /></Pressable>; })}</View>
+  </ScrollView>;
+}
+
+function Metric({ label, value, icon, tone = 'neutral' }: { label: string; value: string; icon: keyof typeof Ionicons.glyphMap; tone?: 'neutral' | 'success' | 'warning' }) { return <View style={styles.metric}><Ionicons name={icon} size={18} color={tone === 'success' ? colors.success : tone === 'warning' ? colors.warning : colors.ink} /><Text style={styles.metricValue}>{value}</Text><Text style={styles.metricLabel}>{label}</Text></View>; }
+
+type RegisterProps = {
+  page: CollectionKey; title: string; singular: string; detail: string; workspace: Workspace; issues: ReturnType<typeof validateWorkspace>; editingId: string | null; setEditingId: (id: string | null) => void; onBack: () => void; onAdd: () => void; onDelete: (id: string) => void;
+  patch: <K extends CollectionKey>(key: K, id: string, values: Partial<Workspace[K][number]>) => void;
+};
+
+function ResourceRegister({ page, title, singular, detail, workspace, issues, editingId, setEditingId, onBack, onAdd, onDelete, patch }: RegisterProps) {
+  const records = workspace[page] as ResourceRecord[];
+  const searchText = useCallback((record: ResourceRecord) => resourceSearchText(page, record, workspace), [page, workspace]);
+  const pagination = usePaginatedRecords(records, searchText, PAGE_SIZE);
+  const record = editingId ? records.find((item) => item.id === editingId) : undefined;
+  const pageIssues = issues.filter((issue) => issue.kind === (page === 'semesters' ? 'semester' : page.slice(0, -1)));
+
+  if (record) return <PageFrame title={`Edit ${singular}`} detail={resourceSummary(page, record, workspace).title} onBack={() => setEditingId(null)} backLabel={`Back to ${title}`}>
+    {pageIssues.filter((issue) => issue.recordId === record.id).map((issue, index) => <Banner key={`${issue.message}-${index}`} type="error" text={issue.message} />)}
+    <Editor page={page} item={record} workspace={workspace} patch={patch} onDelete={() => onDelete(record.id)} />
+  </PageFrame>;
+
+  return <PageFrame title={title} detail={`${detail}. ${records.length} total record${records.length === 1 ? '' : 's'}.`} onBack={onBack}>
+    {pageIssues.slice(0, 2).map((issue, index) => <Banner key={`${issue.message}-${index}`} type="error" text={issue.message} />)}
+    <View style={styles.registerTools}><SearchField value={pagination.query} onChangeText={pagination.setQuery} placeholder={`Search ${title.toLowerCase()}`} /><Button label={`Add ${singular}`} icon="add" onPress={onAdd} /></View>
+    {pagination.items.length ? <View style={styles.recordList}>{pagination.items.map((item) => { const summary = resourceSummary(page, item, workspace); const hasIssue = pageIssues.some((issue) => issue.recordId === item.id); return <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={`Edit ${summary.title}`} onPress={() => setEditingId(item.id)} style={({ pressed }) => [styles.recordRow, pressed && styles.pressed]}><View style={[styles.recordMarker, hasIssue && styles.recordMarkerError]}><Ionicons name={hasIssue ? 'warning-outline' : 'create-outline'} size={16} color={hasIssue ? colors.danger : colors.ink} /></View><View style={{ flex: 1 }}><Text numberOfLines={1} style={styles.recordTitle}>{summary.title}</Text><Text numberOfLines={2} style={styles.recordMeta}>{summary.detail}</Text></View>{hasIssue ? <StatusPill label="Review" tone="danger" /> : null}<Ionicons name="chevron-forward" size={16} color={colors.subtle} /></Pressable>; })}</View> : <EmptyState title="No matching records" detail="Change the search text or add a new record." icon="search-outline" />}
+    <Pagination page={pagination.page} pageCount={pagination.pageCount} total={pagination.total} onPageChange={pagination.setPage} />
+  </PageFrame>;
+}
+
+function resourceSearchText(page: CollectionKey, item: ResourceRecord, workspace: Workspace) { const summary = resourceSummary(page, item, workspace); return `${summary.title} ${summary.detail}`; }
+function resourceSummary(page: CollectionKey, item: ResourceRecord, workspace: Workspace): { title: string; detail: string } {
+  const departmentName = (id: string) => { const department = workspace.departments.find((row) => row.id === id); return department ? `${department.code} · ${department.name}` : 'Department not selected'; };
+  if (page === 'departments') { const row = item as Department; return { title: row.code || 'Untitled department', detail: row.name || 'Name required' }; }
+  if (page === 'semesters') { const row = item as Semester; return { title: `${departmentName(row.departmentId)} · Semester ${row.number}`, detail: `${row.activeWeekdays.length} active weekdays` }; }
+  if (page === 'sections') { const row = item as Section; const semester = workspace.semesters.find((entry) => entry.id === row.semesterId); return { title: `Section ${row.code || '—'}`, detail: `${semester ? `${departmentName(semester.departmentId)} · Semester ${semester.number}` : 'Semester not selected'} · ${row.studentCount} students` }; }
+  if (page === 'courses') { const row = item as Course; return { title: `${row.code || 'No code'} · ${row.name || 'Untitled course'}`, detail: `${departmentName(row.departmentId)} · Semester ${row.semesterNumber} · ${row.type} · ${row.sessionsPerWeek}/week` }; }
+  if (page === 'teachers') { const row = item as Teacher; return { title: row.name || 'Unnamed teacher', detail: `${departmentName(row.departmentId)} · ${row.schedulingType === 'primary' ? 'Primary only' : 'Secondary-capable'}` }; }
+  if (page === 'assignments') { const row = item as Assignment; const teacher = workspace.teachers.find((entry) => entry.id === row.teacherId); const course = workspace.courses.find((entry) => entry.id === row.courseId); const semester = workspace.semesters.find((entry) => entry.id === row.semesterId); const section = workspace.sections.find((entry) => entry.id === row.sectionId); return { title: `${course?.code || 'Course required'} · ${teacher?.name || 'Teacher required'}`, detail: `${semester ? `${departmentName(semester.departmentId)} · Semester ${semester.number}` : 'Semester required'} · ${section ? `Section ${section.code}` : 'All sections'} · ${row.role}` }; }
+  const row = item as Room; return { title: `${row.code || 'No code'} · ${row.name || 'Untitled room'}`, detail: `${departmentName(row.departmentId)} · ${row.type} · capacity ${row.capacity}${row.borrowable ? ' · borrowable' : ''}` };
+}
+
+function Editor({ page, item, workspace, patch, onDelete }: { page: CollectionKey; item: ResourceRecord; workspace: Workspace; patch: RegisterProps['patch']; onDelete: () => void }) {
+  const deptOptions = [{ label: 'Select department…', value: '' }, ...workspace.departments.map((row) => ({ label: `${row.code} — ${row.name}`, value: row.id }))];
+  const semesterOptions = [{ label: 'Select semester…', value: '' }, ...workspace.semesters.map((row) => ({ label: `${workspace.departments.find((department) => department.id === row.departmentId)?.code || '?'} · Semester ${row.number}`, value: row.id }))];
+  let fields: React.ReactNode;
+  if (page === 'departments') { const row = item as Department; fields = <><Field label="Code" value={row.code} autoCapitalize="characters" onChangeText={(code) => patch(page, row.id, { code: code.toUpperCase() })} /><Field label="Department name" value={row.name} onChangeText={(name) => patch(page, row.id, { name })} /></>; }
+  else if (page === 'semesters') { const row = item as Semester; fields = <><Select label="Department" value={row.departmentId} onChange={(departmentId) => patch(page, row.id, { departmentId })} options={deptOptions} /><Select label="Semester number" value={row.number} onChange={(number) => patch(page, row.id, { number })} options={Array.from({ length: 14 }, (_, index) => ({ label: `Semester ${index + 1}`, value: index + 1 }))} /><View style={styles.fullField}><Text style={styles.smallLabel}>Active weekdays</Text><View style={styles.days}>{DAYS.map((day, index) => { const value = index + 1; const selected = row.activeWeekdays.includes(value); return <Pressable key={day} accessibilityRole="checkbox" accessibilityState={{ checked: selected }} onPress={() => patch(page, row.id, { activeWeekdays: selected ? row.activeWeekdays.filter((activeDay) => activeDay !== value) : [...row.activeWeekdays, value].sort() })} style={[styles.day, selected && styles.daySelected]}><Text style={[styles.dayText, selected && styles.dayTextSelected]}>{day.slice(0, 3)}</Text></Pressable>; })}</View></View></>; }
+  else if (page === 'sections') { const row = item as Section; fields = <><Select label="Semester" value={row.semesterId} onChange={(semesterId) => patch(page, row.id, { semesterId })} options={semesterOptions} /><Field label="Section code" value={row.code} onChangeText={(code) => patch(page, row.id, { code: code.toUpperCase() })} /><Field label="Student count" keyboardType="number-pad" value={String(row.studentCount)} onChangeText={(value) => patch(page, row.id, { studentCount: Number(value) || 0 })} /></>; }
+  else if (page === 'courses') { const row = item as Course; fields = <><Select label="Department" value={row.departmentId} onChange={(departmentId) => patch(page, row.id, { departmentId })} options={deptOptions} /><Field label="Course code" value={row.code} autoCapitalize="characters" onChangeText={(code) => patch(page, row.id, { code: code.toUpperCase() })} /><Field label="Course name" value={row.name} onChangeText={(name) => patch(page, row.id, { name })} /><Select label="Semester" value={row.semesterNumber} onChange={(semesterNumber) => patch(page, row.id, { semesterNumber })} options={Array.from({ length: 14 }, (_, index) => ({ label: `Semester ${index + 1}`, value: index + 1 }))} /><Select label="Type" value={row.type} onChange={(typeValue) => patch(page, row.id, typeValue === 'lab' ? { type: typeValue, sessionHours: 3, sessionsPerWeek: 1 } : { type: typeValue })} options={[{ label: 'Lecture', value: 'lecture' }, { label: 'Lab', value: 'lab' }]} /><Select label="Session hours" value={row.sessionHours} onChange={(sessionHours) => patch(page, row.id, { sessionHours })} options={[0.5, 1, 1.5, 2, 2.5, 3].map((value) => ({ label: `${value} hour(s)`, value }))} /><Select label="Sessions per week" value={row.sessionsPerWeek} onChange={(sessionsPerWeek) => patch(page, row.id, { sessionsPerWeek })} options={[1, 2, 3, 4, 5].map((value) => ({ label: `${value} / week`, value }))} /></>; }
+  else if (page === 'teachers') { const row = item as Teacher; fields = <><Field label="Teacher name" value={row.name} onChangeText={(name) => patch(page, row.id, { name })} /><Select label="Home department" value={row.departmentId} onChange={(departmentId) => patch(page, row.id, { departmentId })} options={deptOptions} /><Select label="Scheduling type" value={row.schedulingType} onChange={(schedulingType) => patch(page, row.id, { schedulingType })} options={[{ label: 'Primary only', value: 'primary' }, { label: 'Secondary-capable', value: 'secondary-capable' }]} /><Field label="Preferred start (optional, HH:MM)" value={row.preferredStart} onChangeText={(preferredStart) => patch(page, row.id, { preferredStart })} placeholder="08:00" /><Field label="Preferred end (optional, HH:MM)" value={row.preferredEnd} onChangeText={(preferredEnd) => patch(page, row.id, { preferredEnd })} placeholder="13:00" /><Select label="Preference priority" value={row.preferencePriority} onChange={(preferencePriority) => patch(page, row.id, { preferencePriority })} options={(['low', 'medium', 'high', 'maximum'] as const).map((value) => ({ label: `${value.charAt(0).toUpperCase()}${value.slice(1)}`, value }))} /><Field label="Maximum daily hours" keyboardType="decimal-pad" value={String(row.maxDailyHours)} onChangeText={(value) => patch(page, row.id, { maxDailyHours: Number(value) || 0 })} /></>; }
+  else if (page === 'assignments') { const row = item as Assignment; const semester = workspace.semesters.find((entry) => entry.id === row.semesterId); const teacher = workspace.teachers.find((entry) => entry.id === row.teacherId); const eligibleCourses = workspace.courses.filter((course) => row.role === 'primary' ? teacher?.departmentId === semester?.departmentId && course.departmentId === semester?.departmentId && course.semesterNumber === semester?.number : teacher?.departmentId !== semester?.departmentId || course.departmentId !== semester?.departmentId); fields = <><Select label="Teacher" value={row.teacherId} onChange={(teacherId) => patch(page, row.id, { teacherId, courseId: '' })} options={[{ label: 'Select teacher…', value: '' }, ...workspace.teachers.map((entry) => ({ label: entry.name || 'Unnamed teacher', value: entry.id }))]} /><Select label="Semester" value={row.semesterId} onChange={(semesterId) => patch(page, row.id, { semesterId, sectionId: '', courseId: '' })} options={semesterOptions} /><Select label="Role" value={row.role} onChange={(role) => patch(page, row.id, { role, courseId: '' })} options={[{ label: 'Primary', value: 'primary' }, { label: 'Secondary / cross-department', value: 'secondary' }]} /><Select label="Course" value={row.courseId} onChange={(courseId) => patch(page, row.id, { courseId })} options={[{ label: 'Select course…', value: '' }, ...eligibleCourses.map((course) => ({ label: `${course.code} — ${course.name}`, value: course.id }))]} /><Select label="Section" value={row.sectionId} onChange={(sectionId) => patch(page, row.id, { sectionId })} options={[{ label: 'All sections', value: '' }, ...workspace.sections.filter((section) => section.semesterId === row.semesterId).map((section) => ({ label: `Section ${section.code}`, value: section.id }))]} /></>; }
+  else { const row = item as Room; fields = <><Select label="Department" value={row.departmentId} onChange={(departmentId) => patch(page, row.id, { departmentId })} options={deptOptions} /><Field label="Room code" value={row.code} autoCapitalize="characters" onChangeText={(code) => patch(page, row.id, { code: code.toUpperCase() })} /><Field label="Room name" value={row.name} onChangeText={(name) => patch(page, row.id, { name })} /><Select label="Type" value={row.type} onChange={(typeValue) => patch(page, row.id, { type: typeValue })} options={[{ label: 'Lecture room', value: 'lecture' }, { label: 'Lab', value: 'lab' }]} /><Field label="Capacity" keyboardType="number-pad" value={String(row.capacity)} onChangeText={(value) => patch(page, row.id, { capacity: Number(value) || 0 })} /><View style={styles.switchRow}><View style={{ flex: 1 }}><Text style={styles.smallLabel}>Other departments may borrow</Text><Text style={styles.helper}>Specific organization sharing grants remain preserved.</Text></View><Switch accessibilityLabel="Other departments may borrow" value={row.borrowable} onValueChange={(borrowable) => patch(page, row.id, { borrowable })} trackColor={{ true: colors.success }} /></View></>; }
+  return <Card><View style={styles.fields}>{fields}</View><View style={styles.dangerZone}><Text style={styles.dangerTitle}>Danger zone</Text><Text style={styles.helper}>Deleting parent records also removes dependent assignments.</Text><Button label="Delete record" variant="danger" icon="trash-outline" onPress={onDelete} /></View></Card>;
+}
+
+function PageFrame({ title, detail, onBack, backLabel = 'Back to resources', children }: { title: string; detail: string; onBack: () => void; backLabel?: string; children: React.ReactNode }) { return <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled"><Pressable accessibilityRole="button" accessibilityLabel={backLabel} onPress={onBack} style={styles.back}><Ionicons name="arrow-back" size={21} color={colors.primary} /><Text style={styles.backText}>{backLabel}</Text></Pressable><PageIntro eyebrow="RESOURCE REGISTER" title={title} detail={detail} />{children}</ScrollView>; }
+
+const styles = StyleSheet.create({
+  page: { width: '100%', maxWidth: 960, alignSelf: 'center', padding: space.md, paddingBottom: 112, gap: space.md, backgroundColor: colors.canvas }, introRow: { gap: 12 }, actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, fields: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 }, fullField: { width: '100%', gap: 8 }, cardHeading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 12 }, cardHeadingText: { flex: 1, minWidth: 0 }, cardTitle: { color: colors.ink, ...type.title }, cardDetail: { color: colors.muted, ...type.body, marginTop: 3 }, sectionHeading: { color: colors.ink, ...type.title }, sectionDetail: { color: colors.muted, ...type.body, marginTop: 4 },
+  metricGrid: { flexDirection: 'row', gap: 8 }, metric: { flex: 1, minWidth: 0, minHeight: 96, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, backgroundColor: colors.surface, padding: 12, justifyContent: 'space-between' }, metricValue: { color: colors.ink, ...type.title, marginTop: 8 }, metricLabel: { color: colors.muted, ...type.caption }, resourceGrid: { gap: 8 }, resourceCard: { minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, padding: 12 }, resourceIcon: { width: 32, height: 32, borderRadius: radius.sm, backgroundColor: colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' }, resourceTitle: { color: colors.ink, ...type.label }, resourceDetail: { color: colors.muted, ...type.caption, marginTop: 2 }, pressed: { opacity: 0.7 },
+  registerTools: { gap: 10 }, recordList: { gap: 8 }, recordRow: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, backgroundColor: colors.surface }, recordMarker: { width: 32, height: 32, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceMuted }, recordMarkerError: { backgroundColor: colors.dangerSoft }, recordTitle: { color: colors.ink, ...type.label }, recordMeta: { color: colors.muted, ...type.caption, marginTop: 2 }, back: { minHeight: 44, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 6 }, backText: { color: colors.muted, ...type.label }, smallLabel: { color: colors.ink, ...type.label }, helper: { color: colors.muted, ...type.caption }, days: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, day: { minWidth: 44, minHeight: 44, paddingHorizontal: 10, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface }, daySelected: { backgroundColor: colors.ink, borderColor: colors.ink }, dayText: { color: colors.ink, ...type.label }, dayTextSelected: { color: colors.white }, switchRow: { minHeight: 52, width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }, dangerZone: { borderTopWidth: 1, borderTopColor: colors.line, marginTop: 8, paddingTop: 16, gap: 8 }, dangerTitle: { color: colors.danger, ...type.label },
+});
