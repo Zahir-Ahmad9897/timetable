@@ -1,61 +1,10 @@
-import React from 'react';
-import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TextInputProps, View, ViewStyle } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Picker } from '@react-native-picker/picker';
-import { colors, radius, space, type } from '../theme';
-
-export function Button({ label, onPress, variant = 'primary', disabled = false, loading = false, accessibilityHint, icon }: { label: string; onPress: () => void; variant?: 'primary' | 'secondary' | 'danger' | 'quiet'; disabled?: boolean; loading?: boolean; accessibilityHint?: string; icon?: keyof typeof Ionicons.glyphMap }) {
-  const foreground = variant === 'primary' ? colors.white : variant === 'danger' ? colors.danger : colors.primary;
-  return <Pressable accessibilityRole="button" accessibilityHint={accessibilityHint} accessibilityState={{ disabled: disabled || loading, busy: loading }} disabled={disabled || loading} onPress={onPress} style={({ pressed }) => [styles.button, styles[`button_${variant}`], (disabled || loading) && styles.disabled, pressed && styles.pressed]}>{loading ? <ActivityIndicator color={foreground} /> : <View style={styles.buttonContent}>{icon ? <Ionicons name={icon} size={18} color={foreground} /> : null}<Text style={[styles.buttonText, styles[`buttonText_${variant}`]]}>{label}</Text></View>}</Pressable>;
-}
-export function Field({ label, error, ...props }: TextInputProps & { label: string; error?: string }) {
-  return <View style={styles.field}><Text style={styles.label}>{label}</Text><TextInput accessibilityLabel={label} placeholderTextColor="#8A938E" style={[styles.input, error && styles.inputError]} {...props} />{error ? <Text accessibilityRole="alert" style={styles.errorText}>{error}</Text> : null}</View>;
-}
-export function Select<T extends string | number>({ label, value, onChange, options }: { label: string; value: T; onChange: (value: T) => void; options: { label: string; value: T }[] }) {
-  return <View style={styles.field}><Text style={styles.label}>{label}</Text><View style={styles.picker}><Picker accessibilityLabel={label} selectedValue={value} onValueChange={(next) => onChange(next as T)}>{options.map((option) => <Picker.Item key={String(option.value)} label={option.label} value={option.value} />)}</Picker></View></View>;
-}
-export function Banner({ type, text }: { type: 'error' | 'success' | 'warning' | 'info'; text: string }) {
-  const icon = type === 'error' ? 'alert-circle' : type === 'warning' ? 'warning' : type === 'success' ? 'checkmark-circle' : 'information-circle';
-  return <View accessibilityRole={type === 'error' ? 'alert' : undefined} style={[styles.banner, styles[`banner_${type}`]]}><Ionicons name={icon} size={20} color={type === 'error' ? colors.danger : type === 'warning' ? colors.warning : type === 'success' ? colors.success : colors.info} /><Text style={[styles.bannerText, styles[`bannerText_${type}`]]}>{text}</Text></View>;
-}
-export function Card({ children, style }: { children: React.ReactNode; style?: ViewStyle }) { return <View style={[styles.card, style]}>{children}</View>; }
-export function SectionTitle({ title, detail }: { title: string; detail?: string }) { return <View style={{ marginBottom: space.md }}><Text accessibilityRole="header" style={styles.sectionTitle}>{title}</Text>{detail ? <Text style={styles.detail}>{detail}</Text> : null}</View>; }
-
-export function PageIntro({ eyebrow, title, detail }: { eyebrow: string; title: string; detail: string }) {
-  return <View><Text style={styles.eyebrow}>{eyebrow}</Text><Text accessibilityRole="header" style={styles.pageTitle}>{title}</Text><Text style={styles.pageDetail}>{detail}</Text></View>;
-}
-
-export function StatusPill({ label, tone = 'neutral' }: { label: string; tone?: 'neutral' | 'success' | 'warning' | 'danger' | 'info' }) {
-  return <View style={[styles.statusPill, styles[`statusPill_${tone}`]]}><Text style={[styles.statusPillText, styles[`statusPillText_${tone}`]]}>{label}</Text></View>;
-}
-
-export function SearchField({ value, onChangeText, placeholder = 'Search records' }: { value: string; onChangeText: (value: string) => void; placeholder?: string }) {
-  return <View style={styles.search}><Ionicons name="search" size={20} color={colors.muted} /><TextInput accessibilityRole="search" accessibilityLabel={placeholder} value={value} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor={colors.subtle} autoCapitalize="none" autoCorrect={false} style={styles.searchInput} />{value ? <Pressable accessibilityRole="button" accessibilityLabel="Clear search" hitSlop={8} onPress={() => onChangeText('')}><Ionicons name="close-circle" size={20} color={colors.muted} /></Pressable> : null}</View>;
-}
-
-export function ChipBar({ options, selected, onSelect, accessibilityLabel }: { options: { label: string; value: string }[]; selected: string; onSelect: (value: string) => void; accessibilityLabel: string }) {
-  return <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipBar} accessibilityLabel={accessibilityLabel}>{options.map((option) => { const active = option.value === selected; return <Pressable key={option.value} accessibilityRole="radio" accessibilityState={{ selected: active }} onPress={() => onSelect(option.value)} style={[styles.chip, active && styles.chipActive]}><Text style={[styles.chipText, active && styles.chipTextActive]}>{option.label}</Text></Pressable>; })}</ScrollView>;
-}
-
-export function Pagination({ page, pageCount, total, onPageChange }: { page: number; pageCount: number; total: number; onPageChange: (page: number) => void }) {
-  return <View accessibilityLabel={`Pagination, page ${page} of ${pageCount}`} style={styles.pagination}><Pressable accessibilityRole="button" accessibilityLabel="Previous page" accessibilityState={{ disabled: page <= 1 }} disabled={page <= 1} onPress={() => onPageChange(page - 1)} style={[styles.pageButton, page <= 1 && styles.disabled]}><Ionicons name="chevron-back" size={20} color={colors.primary} /></Pressable><View style={styles.pageSummary}><Text style={styles.pageText}>Page {page} of {pageCount}</Text><Text style={styles.pageCount}>{total} record{total === 1 ? '' : 's'}</Text></View><Pressable accessibilityRole="button" accessibilityLabel="Next page" accessibilityState={{ disabled: page >= pageCount }} disabled={page >= pageCount} onPress={() => onPageChange(page + 1)} style={[styles.pageButton, page >= pageCount && styles.disabled]}><Ionicons name="chevron-forward" size={20} color={colors.primary} /></Pressable></View>;
-}
-
-export function EmptyState({ title, detail, icon = 'file-tray-outline' }: { title: string; detail: string; icon?: keyof typeof Ionicons.glyphMap }) {
-  return <View style={styles.emptyState}><View style={styles.emptyIcon}><Ionicons name={icon} size={22} color={colors.muted} /></View><Text style={styles.emptyTitle}>{title}</Text><Text style={styles.emptyDetail}>{detail}</Text></View>;
-}
-
-const styles = StyleSheet.create({
-  button: { minHeight: 44, borderRadius: radius.md, paddingHorizontal: 16, paddingVertical: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, ...Platform.select({ ios: { shadowColor: colors.ink, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 1 }, android: { elevation: 1 } }) },
-  button_primary: { backgroundColor: colors.primary, borderColor: colors.primary }, button_secondary: { backgroundColor: colors.raised, borderColor: colors.line }, button_danger: { backgroundColor: colors.dangerSoft, borderColor: '#FCA5A5' }, button_quiet: { backgroundColor: 'transparent', borderColor: 'transparent', shadowOpacity: 0, elevation: 0 },
-  buttonContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }, buttonText: { fontSize: 14, fontWeight: '600' }, buttonText_primary: { color: colors.white }, buttonText_secondary: { color: colors.ink }, buttonText_danger: { color: colors.danger }, buttonText_quiet: { color: colors.muted }, disabled: { opacity: 0.42 }, pressed: { opacity: 0.72, transform: [{ scale: 0.98 }] },
-  field: { gap: 6, flex: 1, minWidth: 140 }, label: { color: colors.ink, ...type.label }, input: { minHeight: 44, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, backgroundColor: colors.surface, color: colors.ink, paddingHorizontal: 12, ...type.body }, inputError: { borderColor: colors.danger }, errorText: { color: colors.danger, ...type.caption }, picker: { minHeight: 44, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, overflow: 'hidden', backgroundColor: colors.surface, justifyContent: 'center' },
-  banner: { borderRadius: radius.md, borderWidth: 1, padding: 12, flexDirection: 'row', gap: 10, alignItems: 'flex-start' }, banner_error: { backgroundColor: colors.dangerSoft, borderColor: '#FECACA' }, banner_success: { backgroundColor: colors.successSoft, borderColor: '#A7F3D0' }, banner_warning: { backgroundColor: colors.warningSoft, borderColor: '#FDE68A' }, banner_info: { backgroundColor: colors.infoSoft, borderColor: '#BFDBFE' }, bannerText: { flex: 1, ...type.body, fontSize: 14 }, bannerText_error: { color: '#991B1B' }, bannerText_success: { color: '#065F46' }, bannerText_warning: { color: '#92400E' }, bannerText_info: { color: '#1E3A8A' },
-  card: { backgroundColor: colors.surface, borderColor: colors.line, borderWidth: 1, borderRadius: radius.lg, padding: 16, gap: 16 }, sectionTitle: { color: colors.ink, ...type.title }, detail: { color: colors.muted, ...type.body, marginTop: 4 },
-  eyebrow: { color: colors.muted, fontSize: 11, fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase' }, pageTitle: { color: colors.ink, ...type.display, marginTop: 4 }, pageDetail: { color: colors.muted, ...type.body, marginTop: 6 },
-  statusPill: { minHeight: 24, alignSelf: 'flex-start', justifyContent: 'center', borderRadius: radius.sm, paddingHorizontal: 8, borderWidth: 1 }, statusPill_neutral: { backgroundColor: colors.surfaceMuted, borderColor: colors.line }, statusPill_success: { backgroundColor: colors.successSoft, borderColor: '#A7F3D0' }, statusPill_warning: { backgroundColor: colors.warningSoft, borderColor: '#FDE68A' }, statusPill_danger: { backgroundColor: colors.dangerSoft, borderColor: '#FECACA' }, statusPill_info: { backgroundColor: colors.infoSoft, borderColor: '#BFDBFE' }, statusPillText: { ...type.caption, fontWeight: '600' }, statusPillText_neutral: { color: colors.muted }, statusPillText_success: { color: colors.success }, statusPillText_warning: { color: colors.warning }, statusPillText_danger: { color: colors.danger }, statusPillText_info: { color: colors.info },
-  search: { minHeight: 44, borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, backgroundColor: colors.surface, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 }, searchInput: { flex: 1, minHeight: 42, color: colors.ink, ...type.body },
-  chipBar: { gap: 8, paddingVertical: 4 }, chip: { minHeight: 36, justifyContent: 'center', borderRadius: radius.sm, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, paddingHorizontal: 12 }, chipActive: { backgroundColor: colors.primary, borderColor: colors.primary }, chipText: { color: colors.ink, ...type.caption, fontWeight: '500' }, chipTextActive: { color: colors.white },
-  pagination: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }, pageButton: { width: 40, height: 40, borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' }, pageSummary: { flex: 1, alignItems: 'center' }, pageText: { color: colors.ink, ...type.label }, pageCount: { color: colors.muted, ...type.caption },
-  emptyState: { minHeight: 160, alignItems: 'center', justifyContent: 'center', borderRadius: radius.lg, borderWidth: 1, borderColor: colors.line, borderStyle: 'dashed', padding: 24, backgroundColor: colors.surface }, emptyIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.surfaceMuted, alignItems: 'center', justifyContent: 'center', marginBottom: 12 }, emptyTitle: { color: colors.ink, ...type.label, textAlign: 'center' }, emptyDetail: { color: colors.muted, ...type.caption, textAlign: 'center', marginTop: 4 },
-});
+export { Button } from './primitives/Button';
+export { Card } from './primitives/Card';
+export { Field, Select } from './primitives/Field';
+export { StatusPill } from './primitives/StatusPill';
+export { Banner } from './feedback/Banner';
+export { EmptyState } from './feedback/EmptyState';
+export { Toast } from './feedback/Toast';
+export { Skeleton, SkeletonCard } from './feedback/Skeleton';
+export { ChipBar, Pagination, SearchField } from './navigation/NavigationControls';
+export { PageIntro, SectionTitle } from './layout/PageIntro';

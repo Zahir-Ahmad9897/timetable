@@ -171,6 +171,36 @@ Forbidden states:
 
 ## Product interaction specification
 
+### FR-TTM-017 — Deep-linkable application navigation
+
+- Goal: make every primary workflow and resource register addressable, bookmarkable, and compatible with native back gestures.
+- Preconditions: the app has completed local preference and workspace hydration.
+- Behavior: expose onboarding, workspace, generation, timetable, settings, global search, and each resource register as Expo Router routes; use animated stacks and persistent bottom tabs; preserve unsaved workspace state while navigating.
+- Failure: an unknown resource route returns to the workspace instead of rendering an invalid editor.
+- Authorization: local user; navigation does not create a remote authorization boundary.
+- Acceptance: browser URLs change with the active route; native Back/swipe-back and browser Back return predictably; direct resource links open the requested register.
+- Evidence: route tree, static route parameters, typecheck, production export, and browser smoke check.
+
+### FR-TTM-018 — First-run guidance and preferences
+
+- Goal: explain value, privacy, and review responsibility before first use and provide durable application preferences.
+- Preconditions: private device or origin-scoped preference storage is available.
+- Behavior: show onboarding once; persist system/light/dark theme and haptic preferences; expose version, privacy, release notes, and local data actions in Settings.
+- Failure: unreadable preferences fall back to privacy-preserving defaults without preventing workspace access.
+- Authorization: local user.
+- Acceptance: completing onboarding prevents it from reappearing; theme and haptic choices survive restart; Settings never implies remote sync or analytics.
+- Evidence: preference storage implementations, provider behavior, and settings/onboarding routes.
+
+### FR-TTM-019 — Recoverable interaction feedback
+
+- Goal: keep loading, success, error, refresh, and edit-recovery states understandable without shifting the whole layout.
+- Preconditions: application providers are mounted.
+- Behavior: use content-shaped skeletons during hydration, auto-dismissing accessible toasts, one-level workspace undo, pull-to-refresh from local storage, keyboard avoidance for editors, haptic confirmation when enabled, and an application error boundary.
+- Failure: an uncaught render error shows retry/report actions and does not delete saved workspace data; storage errors retain the in-memory workspace.
+- Authorization: local user.
+- Acceptance: feedback is expressed with text and icons; Undo restores the previous in-memory workspace; refresh re-reads only local storage; native form controls remain visible above the keyboard.
+- Evidence: shared feedback components, focused providers, typecheck, and device/browser workflow inspection.
+
 The single interaction reference is Google Calendar mobile: a restrained schedule hierarchy, visible day selection, chronological agenda rows, predictable navigation, and a clear primary action. Branding, assets, screen composition, and timetable-specific controls remain original to irid.ai.
 
 The coordinator's primary flow is:

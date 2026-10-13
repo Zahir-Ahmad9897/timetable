@@ -1,16 +1,24 @@
+import { ColorValue, DynamicColorIOS, Platform } from 'react-native';
+
+const adaptive = (name: string, light: string, dark: string): ColorValue => {
+  if (Platform.OS === 'web') return `var(--${name}, ${light})` as ColorValue;
+  if (Platform.OS === 'ios') return DynamicColorIOS({ light, dark });
+  return light;
+};
+
 export const colors = {
-  canvas: '#FAFAFA', // Very clean off-white
-  surface: '#FFFFFF',
-  raised: '#FFFFFF',
-  surfaceMuted: '#F4F4F5',
-  ink: '#18181B', // Zinc 900
-  muted: '#71717A', // Zinc 500
-  subtle: '#A1A1AA', // Zinc 400
-  line: '#E4E4E7', // Zinc 200
-  lineStrong: '#D4D4D8',
-  primary: '#18181B', // Black primary actions
-  primaryPressed: '#27272A',
-  primarySoft: '#F4F4F5',
+  canvas: adaptive('canvas', '#FAFAFA', '#09090B'),
+  surface: adaptive('surface', '#FFFFFF', '#18181B'),
+  raised: adaptive('raised', '#FFFFFF', '#27272A'),
+  surfaceMuted: adaptive('surface-muted', '#F4F4F5', '#27272A'),
+  ink: adaptive('ink', '#18181B', '#FAFAFA'),
+  muted: adaptive('muted', '#71717A', '#A1A1AA'),
+  subtle: adaptive('subtle', '#A1A1AA', '#71717A'),
+  line: adaptive('line', '#E4E4E7', '#3F3F46'),
+  lineStrong: adaptive('line-strong', '#D4D4D8', '#52525B'),
+  primary: adaptive('primary', '#18181B', '#E4E4E7'),
+  primaryPressed: adaptive('primary-pressed', '#27272A', '#D4D4D8'),
+  primarySoft: adaptive('primary-soft', '#F4F4F5', '#27272A'),
   accent: '#4F46E5', // Indigo for active states
   accentSoft: '#EEF2FF',
   success: '#059669',
@@ -21,7 +29,7 @@ export const colors = {
   dangerSoft: '#FEF2F2',
   info: '#2563EB',
   infoSoft: '#EFF6FF',
-  white: '#FFFFFF',
+  white: adaptive('on-primary', '#FFFFFF', '#18181B'),
 };
 
 export const space = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32, xxl: 48 };

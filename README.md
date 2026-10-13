@@ -29,7 +29,11 @@ The bundled UET Mardan snapshot is resource-only: it contains scheduling inputs 
 
 ## Mobile navigation
 
-Setup opens as a visible resource hub. Departments, Semesters, Sections, Courses, Teachers, Assignments, Rooms/Labs, and Teaching Day each have their own page and Back control. Android hardware Back returns to the previous resource or top-level location without discarding edits.
+Expo Router provides URL/deep-link navigation for onboarding, Workspace, Generate, Timetable, Settings, global search, and every resource register. Setup opens as a visible resource hub. Departments, Semesters, Sections, Courses, Teachers, Assignments, Rooms/Labs, and Teaching Day each have their own route and Back control. Android hardware Back, iOS swipe-back, browser Back, and shared links return predictably without discarding in-memory edits.
+
+The first run introduces the offline workflow and privacy model. Settings includes system/light/dark appearance, optional native haptics, local import/export/reset actions, app version, privacy disclosure, and release notes. App preferences are stored separately from timetable workspaces.
+
+Global search scans only the active local workspace and links directly to a matching resource editor. Pull-to-refresh re-reads local storage; it does not contact a server. Save, import, export, errors, and one-level edit undo use accessible toast feedback without changing page layout.
 
 The product interaction model uses Google Calendar mobile as a reference for schedule hierarchy, visible day switching, chronological agenda rows, and predictable navigation. It does not copy Google branding or assets. The visual system is original to irid.ai and emphasizes calm operational status, explicit recovery, and local-data trust.
 
@@ -58,6 +62,8 @@ https://zahir-ahmad9897.github.io/timetable/
 ```
 
 The workflow in `.github/workflows/deploy-pages.yml` verifies and deploys the site on every push to `main`. For the first deployment, open **Settings -> Pages** in the GitHub repository and select **GitHub Actions** as the source if it is not already enabled.
+
+For Railway or another container host, the included multi-stage `Dockerfile` builds the static export and runs the dependency-free `server.js`. Set the service root directory to `timetable-mobile`; the server honors Railway's `PORT` and serves both `/timetable` deep links and static assets. Run the same server locally after building with `npm run serve`.
 
 The web build stores organization and manual workspaces separately in browser `localStorage`. JSON backups and CSV timetables download through the browser; importing uses the browser file picker. Browser data is specific to the current browser profile and site origin, so export a JSON backup before clearing site data or changing deployment domains.
 

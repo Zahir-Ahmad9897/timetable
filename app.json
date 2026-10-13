@@ -2,13 +2,11 @@
   "expo": {
     "name": "irid.ai Timetable",
     "slug": "iridai-timetable",
+    "scheme": "iridai-timetable",
     "version": "1.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "splash": {
-      "backgroundColor": "#F5F7F6"
-    },
+    "userInterfaceStyle": "automatic",
+    "icon": "./assets/app-icon.png",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "ai.irid.timetable"
@@ -16,20 +14,36 @@
     "android": {
       "package": "ai.irid.timetable",
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0B5D43"
       }
     },
     "web": {
       "bundler": "metro",
-      "output": "single"
+      "output": "static"
     },
     "experiments": {
-      "baseUrl": "/timetable"
+      "baseUrl": "/timetable",
+      "typedRoutes": true
     },
     "plugins": [
       "expo-document-picker",
       "expo-sharing",
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-router",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180,
+          "resizeMode": "contain",
+          "backgroundColor": "#F5F7F6",
+          "dark": {
+            "backgroundColor": "#09090B"
+          }
+        }
+      ]
     ]
   }
 }

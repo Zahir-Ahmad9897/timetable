@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useApp } from '../context/AppContext';
+import { useWorkspace } from '../state/WorkspaceProvider';
 import { calculateCapacity } from '../domain/capacity';
 import { arrangementSignature, generateTimetable } from '../domain/generator';
 import { validateWorkspace } from '../domain/validation';
@@ -9,7 +9,7 @@ import { colors, radius, space, type } from '../theme';
 import { Banner, Button, Card, PageIntro, StatusPill } from '../components/ui';
 
 export default function GenerateScreen({ onOpenTimetable }: { onOpenTimetable: () => void }) {
-  const { workspace, dataSource, update, save } = useApp();
+  const { workspace, dataSource, update, save, refreshing, reload } = useWorkspace();
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState('');
   const [diagnostics, setDiagnostics] = useState<string[]>([]);
@@ -36,7 +36,7 @@ export default function GenerateScreen({ onOpenTimetable }: { onOpenTimetable: (
     finally { setGenerating(false); }
   };
 
-  return <ScrollView contentContainerStyle={styles.page}>
+  return <ScrollView contentContainerStyle={styles.page} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { void reload(); }} />}>
     <View style={styles.introRow}><PageIntro eyebrow="TIMETABLE GENERATOR" title="Build a complete draft" detail="Select scope, pass readiness checks, then run a bounded offline search." /><StatusPill label={ready ? 'Ready' : 'Action needed'} tone={ready ? 'success' : 'warning'} /></View>
     {diagnostics.map((item, index) => <Banner key={`${item}-${index}`} type="error" text={`${item} The previous valid draft, if any, remains unchanged.`} />)}
     {workspace.generation ? <Banner type="success" text={`A validated draft with ${workspace.generation.sessions.length} sessions is stored locally.`} /> : null}

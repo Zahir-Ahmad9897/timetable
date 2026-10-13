@@ -3,9 +3,10 @@
   "compilerOptions": {
     "strict": true,
     "resolveJsonModule": true,
+    "paths": { "@/*": ["./src/*"] },
     "noUncheckedIndexedAccess": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["**/*.ts", "**/*.tsx"],
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
   "exclude": ["src/domain/__tests__"]
 }

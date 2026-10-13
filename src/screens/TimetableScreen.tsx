@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useApp } from '../context/AppContext';
+import { useWorkspace } from '../state/WorkspaceProvider';
 import { DAYS, Session, canDepartmentUseRoom, toClock, toMinutes } from '../domain/types';
 import { validateSessions } from '../domain/validation';
 import { arrangementSignature } from '../domain/generator';
@@ -13,7 +13,7 @@ import { confirmDestructive } from '../platform/confirm';
 type AgendaGroup = { key: string; label: string; detail: string; rows: Session[] };
 
 export default function TimetableScreen({ onGenerate }: { onGenerate: () => void }) {
-  const { workspace, update, save, dirty, saving } = useApp();
+  const { workspace, update, save, dirty, saving, refreshing, reload } = useWorkspace();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Session | null>(null);
   const [notice, setNotice] = useState('');
@@ -37,9 +37,9 @@ export default function TimetableScreen({ onGenerate }: { onGenerate: () => void
   const remove = () => confirmDestructive('Delete generated timetable?', 'Scheduling resources stay available, but this draft cannot be recovered after saving.', 'Delete draft', () => update((current) => ({ ...current, generation: null })));
   const exportFile = async () => { setError(''); try { await exportTimetable(workspace); setNotice('The validated timetable is ready in the share sheet.'); } catch (cause) { setError(`${cause instanceof Error ? cause.message : 'Export failed.'} The timetable remains unchanged.`); } };
 
-  if (!result) return <ScrollView contentContainerStyle={styles.page}><PageIntro eyebrow="TIMETABLE REVIEW" title="No timetable yet" detail="Generate a complete draft before reviewing the weekly agenda." /><EmptyState title="Your agenda will appear here" detail="Check resource readiness, select a department, and run generation." icon="calendar-outline" /><Button label="Go to generation" icon="sparkles-outline" onPress={onGenerate} /></ScrollView>;
+  if (!result) return <ScrollView contentContainerStyle={styles.page} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { void reload(); }} />}><PageIntro eyebrow="TIMETABLE REVIEW" title="No timetable yet" detail="Generate a complete draft before reviewing the weekly agenda." /><EmptyState title="Your agenda will appear here" detail="Check resource readiness, select a department, and run generation." icon="calendar-outline" /><Button label="Go to generation" icon="sparkles-outline" onPress={onGenerate} /></ScrollView>;
 
-  return <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
+  return <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}><ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled" refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { void reload(); }} />}>
     <View style={styles.introRow}><PageIntro eyebrow="VALIDATED LOCAL DRAFT" title="Weekly timetable" detail={`${sessions.length} sessions · generated ${new Date(result.generatedAt).toLocaleString()}`} /><StatusPill label={dirty ? 'Unsaved changes' : 'Saved locally'} tone={dirty ? 'warning' : 'success'} /></View>
     {error ? <Banner type="error" text={error} /> : null}{notice ? <Banner type="success" text={notice} /> : null}{result.warnings.map((warning) => <Banner key={warning} type="warning" text={warning} />)}
     <Card><View style={styles.actionHeader}><View style={{ flex: 1 }}><Text style={styles.cardTitle}>Draft actions</Text><Text style={styles.cardDetail}>Seed {result.seed} · {result.attempts} search attempt{result.attempts === 1 ? '' : 's'}</Text></View><StatusPill label="Constraints passed" tone="success" /></View><Button label={dirty ? 'Save timetable changes' : 'Timetable saved'} icon="save-outline" onPress={() => { void save(); }} loading={saving} disabled={!dirty} /><View style={styles.actions}><Button label="Export spreadsheet" icon="share-outline" variant="secondary" onPress={exportFile} /><Button label="Delete draft" icon="trash-outline" variant="danger" onPress={remove} /></View></Card>
@@ -49,10 +49,10 @@ export default function TimetableScreen({ onGenerate }: { onGenerate: () => void
     <ChipBar accessibilityLabel="Choose weekday" selected={selectedDay} onSelect={(value) => { setSelectedDay(value); setEditingId(null); setDraft(null); }} options={DAYS.map((day, index) => ({ label: day.slice(0, 3), value: String(index + 1) }))} />
     <View style={styles.agendaHeader}><View><Text style={styles.dayTitle}>{DAYS[activeDay - 1]}</Text><Text style={styles.dayDetail}>{agenda.length} session{agenda.length === 1 ? '' : 's'}</Text></View><StatusPill label={agenda.length ? `${toClock(agenda[0]!.startMinutes)} start` : 'No classes'} tone={agenda.length ? 'info' : 'neutral'} /></View>
     {agenda.length ? <View style={styles.agenda}>{agenda.map((session) => <SessionCard key={session.id} workspace={workspace} session={session} editing={editingId === session.id} draft={editingId === session.id ? draft : null} setDraft={setDraft} onEdit={() => startEdit(session)} onSave={commitEdit} onCancel={() => { setEditingId(null); setDraft(null); setError(''); }} />)}</View> : <EmptyState title="No classes on this day" detail="Choose another weekday or class group. The timetable itself has not changed." icon="cafe-outline" />}
-  </ScrollView>;
+  </ScrollView></KeyboardAvoidingView>;
 }
 
-function SessionCard({ workspace, session, editing, draft, setDraft, onEdit, onSave, onCancel }: { workspace: ReturnType<typeof useApp>['workspace']; session: Session; editing: boolean; draft: Session | null; setDraft: (session: Session) => void; onEdit: () => void; onSave: () => void; onCancel: () => void }) {
+function SessionCard({ workspace, session, editing, draft, setDraft, onEdit, onSave, onCancel }: { workspace: ReturnType<typeof useWorkspace>['workspace']; session: Session; editing: boolean; draft: Session | null; setDraft: (session: Session) => void; onEdit: () => void; onSave: () => void; onCancel: () => void }) {
   const course = workspace.courses.find((item) => item.id === session.courseId); const teacher = workspace.teachers.find((item) => item.id === session.teacherId); const room = workspace.rooms.find((item) => item.id === session.roomId); const semester = workspace.semesters.find((item) => item.id === session.semesterId); const sectionSize = session.sectionIds.reduce((sum, id) => sum + (workspace.sections.find((item) => item.id === id)?.studentCount || 0), 0); const compatibleRooms = workspace.rooms.filter((item) => item.type === course?.type && item.capacity >= sectionSize && Boolean(semester && canDepartmentUseRoom(item, semester.departmentId)));
   if (editing && draft) return <Card style={styles.sessionEdit}><Text accessibilityRole="header" style={styles.cardTitle}>Edit session</Text><Banner type="info" text="The change is accepted only if the complete timetable still passes every hard constraint." /><Select label="Day" value={draft.day} onChange={(day) => setDraft({ ...draft, day })} options={DAYS.map((day, index) => ({ label: day, value: index + 1 }))} /><Field label="Start (HH:MM)" value={toClock(draft.startMinutes)} onChangeText={(value) => setDraft({ ...draft, startMinutes: toMinutes(value) })} /><Select label="Room" value={draft.roomId} onChange={(roomId) => { const selected = workspace.rooms.find((item) => item.id === roomId); setDraft({ ...draft, roomId, borrowedRoom: selected?.departmentId !== semester?.departmentId }); }} options={compatibleRooms.map((item) => ({ label: `${item.code} · ${item.name}`, value: item.id }))} /><Button label="Validate and apply" icon="checkmark" onPress={onSave} /><Button label="Cancel" variant="secondary" onPress={onCancel} /></Card>;
   const borrowed = session.borrowedRoom || session.crossDepartmentTeacher;

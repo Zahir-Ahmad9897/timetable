@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { BackHandler, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { BackHandler, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useApp } from '../context/AppContext';
+import { useRouter } from 'expo-router';
+import { useWorkspace } from '../state/WorkspaceProvider';
 import { Assignment, Course, DAYS, Department, Room, Section, Semester, Teacher, Workspace, createId } from '../domain/types';
 import { validateWorkspace } from '../domain/validation';
 import { colors, radius, space, type } from '../theme';
@@ -44,14 +45,15 @@ function removeWithDependents(workspace: Workspace, key: CollectionKey, id: stri
   return next;
 }
 
-export default function SetupScreen() {
-  const app = useApp();
-  const { workspace, dataSource, switchDataSource, restoreSource, update, save, saving, dirty, message, error, importJson, exportJson, loadSample } = app;
-  const [page, setPage] = useState<SetupPage>('home');
-  const [editingId, setEditingId] = useState<string | null>(null);
+export default function SetupScreen({ initialPage = 'home', initialEditingId = null, onClose }: { initialPage?: SetupPage; initialEditingId?: string | null; onClose?: () => void }) {
+  const app = useWorkspace();
+  const router = useRouter();
+  const { workspace, dataSource, switchDataSource, restoreSource, update, save, saving, dirty, refreshing, reload, importJson, exportJson, loadSample } = app;
+  const [page, setPage] = useState<SetupPage>(initialPage);
+  const [editingId, setEditingId] = useState<string | null>(initialEditingId);
   const issues = useMemo(() => validateWorkspace(workspace), [workspace]);
 
-  const goHome = () => { setEditingId(null); setPage('home'); };
+  const goHome = () => { setEditingId(null); if (initialPage !== 'home' && onClose) onClose(); else setPage('home'); };
   useEffect(() => { const listener = BackHandler.addEventListener('hardwareBackPress', () => { if (editingId) { setEditingId(null); return true; } if (page !== 'home') { goHome(); return true; } return false; }); return () => listener.remove(); }, [editingId, page]);
 
   const patch = <K extends CollectionKey>(key: K, id: string, values: Partial<Workspace[K][number]>) => update((current) => ({ ...current, [key]: current[key].map((item) => item.id === id ? { ...item, ...values } : item), generation: null } as Workspace));
@@ -75,7 +77,7 @@ export default function SetupScreen() {
   };
   const remove = (key: CollectionKey, id: string) => confirmDestructive('Delete this record?', 'Dependent assignments and records will also be removed. This cannot be undone after saving.', 'Delete', () => { update((current) => removeWithDependents(current, key, id)); setEditingId(null); });
 
-  if (page === 'home') return <WorkspaceHome {...{ workspace, dataSource, issues, dirty, saving, message, error, switchDataSource, restoreSource, update, save, importJson, exportJson, loadSample, setPage }} />;
+  if (page === 'home') return <WorkspaceHome {...{ workspace, dataSource, issues, dirty, saving, refreshing, reload, switchDataSource, restoreSource, update, save, importJson, exportJson, loadSample }} openPage={(next) => router.push({ pathname: '/resource/[page]', params: { page: next } })} />;
 
   const pageMeta = resourcePages.find((item) => item.key === page)!;
   if (page === 'settings') return <PageFrame title={pageMeta.title} detail={pageMeta.detail} onBack={goHome}>
@@ -86,16 +88,15 @@ export default function SetupScreen() {
   return <ResourceRegister page={page} title={pageMeta.title} singular={pageMeta.singular} detail={pageMeta.detail} workspace={workspace} issues={issues} editingId={editingId} setEditingId={setEditingId} onBack={goHome} onAdd={() => add(page)} onDelete={(id) => remove(page, id)} patch={patch} />;
 }
 
-type HomeProps = Pick<ReturnType<typeof useApp>, 'workspace' | 'dataSource' | 'dirty' | 'saving' | 'message' | 'error' | 'switchDataSource' | 'restoreSource' | 'update' | 'save' | 'importJson' | 'exportJson' | 'loadSample'> & { issues: ReturnType<typeof validateWorkspace>; setPage: (page: SetupPage) => void };
-function WorkspaceHome({ workspace, dataSource, issues, dirty, saving, message, error, switchDataSource, restoreSource, update, save, importJson, exportJson, loadSample, setPage }: HomeProps) {
-  return <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
+type HomeProps = Pick<ReturnType<typeof useWorkspace>, 'workspace' | 'dataSource' | 'dirty' | 'saving' | 'refreshing' | 'reload' | 'switchDataSource' | 'restoreSource' | 'update' | 'save' | 'importJson' | 'exportJson' | 'loadSample'> & { issues: ReturnType<typeof validateWorkspace>; openPage: (page: Exclude<SetupPage, 'home'>) => void };
+function WorkspaceHome({ workspace, dataSource, issues, dirty, saving, refreshing, reload, switchDataSource, restoreSource, update, save, importJson, exportJson, loadSample, openPage }: HomeProps) {
+  return <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled" refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { void reload(); }} />}>
     <View style={styles.introRow}><PageIntro eyebrow="ACADEMIC OPERATIONS" title="Scheduling workspace" detail="Review source data, resolve readiness issues, then generate a validated timetable." /><StatusPill label={dirty ? 'Unsaved' : 'Saved'} tone={dirty ? 'warning' : 'success'} /></View>
-    {error ? <Banner type="error" text={`${error} Your in-memory workspace was kept.`} /> : null}{message ? <Banner type="success" text={message} /> : null}
     <View style={styles.metricGrid}><Metric label="Resources" value={String(workspace.departments.length + workspace.courses.length + workspace.teachers.length + workspace.rooms.length)} icon="library-outline" /><Metric label="Assignments" value={String(workspace.assignments.length)} icon="git-branch-outline" /><Metric label="Readiness" value={issues.length ? `${issues.length} issue${issues.length === 1 ? '' : 's'}` : 'Ready'} icon={issues.length ? 'warning-outline' : 'checkmark-circle-outline'} tone={issues.length ? 'warning' : 'success'} /></View>
     <Card><View style={styles.cardHeading}><View style={styles.cardHeadingText}><Text style={styles.cardTitle}>Data source</Text><Text style={styles.cardDetail}>Organization and manual workspaces are stored separately.</Text></View><StatusPill label={dataSource === 'organization' ? 'UET Mardan' : 'Manual'} tone="info" /></View><ChipBar accessibilityLabel="Choose data source" selected={dataSource} onSelect={(value) => { void switchDataSource(value as 'organization' | 'manual'); }} options={[{ label: 'UET Mardan org data', value: 'organization' }, { label: 'Manual data', value: 'manual' }]} />{dataSource === 'organization' ? <Banner type="warning" text="Fall 2026 data is bundled. Enrollment totals were unavailable, so review the 30-student section assumptions." /> : <Banner type="info" text="Manual data is independent and can be entered here or imported from JSON." />}</Card>
     <Card><View style={styles.cardHeading}><View style={{ flex: 1 }}><Text style={styles.cardTitle}>{dataSource === 'organization' ? 'UET Mardan working copy' : 'Manual workspace'}</Text><Text style={styles.cardDetail}>Local-only storage. Data leaves the device only when you export it.</Text></View></View><Field label="Institution name" value={workspace.institutionName} onChangeText={(institutionName) => update((current) => ({ ...current, institutionName }))} /><Button label={dirty ? 'Save workspace' : 'Workspace saved'} icon="save-outline" onPress={() => { void save(); }} loading={saving} disabled={!dirty} /><View style={styles.actions}><Button label="Import JSON" icon="download-outline" variant="secondary" onPress={importJson} /><Button label="Export JSON" icon="share-outline" variant="secondary" onPress={exportJson} /></View><View style={styles.actions}>{dataSource === 'manual' ? <Button label="Load sample" variant="quiet" onPress={loadSample} /> : null}<Button label={dataSource === 'organization' ? 'Restore bundled data' : 'Clear manual data'} variant="danger" onPress={restoreSource} /></View></Card>
     <View><Text accessibilityRole="header" style={styles.sectionHeading}>Resource registers</Text><Text style={styles.sectionDetail}>Open a register to search, page through summaries, and edit one record at a time.</Text></View>
-    <View style={styles.resourceGrid}>{resourcePages.map((item) => { const count = item.key === 'settings' ? undefined : workspace[item.key].length; const issueKind = item.key === 'settings' ? 'settings' : item.key === 'semesters' ? 'semester' : item.key.slice(0, -1); const issueCount = issues.filter((issue) => issue.kind === issueKind).length; return <Pressable key={item.key} accessibilityRole="button" accessibilityLabel={`Open ${item.title}`} onPress={() => setPage(item.key)} style={({ pressed }) => [styles.resourceCard, pressed && styles.pressed]}><View style={styles.resourceIcon}><Ionicons name={item.icon} size={18} color={colors.ink} /></View><View style={{ flex: 1 }}><Text style={styles.resourceTitle}>{item.title}</Text><Text style={styles.resourceDetail}>{item.detail}</Text></View>{issueCount ? <StatusPill label={`${issueCount} issue${issueCount === 1 ? '' : 's'}`} tone="danger" /> : count !== undefined ? <StatusPill label={String(count)} /> : null}<Ionicons name="chevron-forward" size={16} color={colors.subtle} /></Pressable>; })}</View>
+    <View style={styles.resourceGrid}>{resourcePages.map((item) => { const count = item.key === 'settings' ? undefined : workspace[item.key].length; const issueKind = item.key === 'settings' ? 'settings' : item.key === 'semesters' ? 'semester' : item.key.slice(0, -1); const issueCount = issues.filter((issue) => issue.kind === issueKind).length; return <Pressable key={item.key} accessibilityRole="button" accessibilityLabel={`Open ${item.title}`} onPress={() => openPage(item.key)} style={({ pressed }) => [styles.resourceCard, pressed && styles.pressed]}><View style={styles.resourceIcon}><Ionicons name={item.icon} size={18} color={colors.ink} /></View><View style={{ flex: 1 }}><Text style={styles.resourceTitle}>{item.title}</Text><Text style={styles.resourceDetail}>{item.detail}</Text></View>{issueCount ? <StatusPill label={`${issueCount} issue${issueCount === 1 ? '' : 's'}`} tone="danger" /> : count !== undefined ? <StatusPill label={String(count)} /> : null}<Ionicons name="chevron-forward" size={16} color={colors.subtle} /></Pressable>; })}</View>
   </ScrollView>;
 }
 
@@ -152,7 +153,7 @@ function Editor({ page, item, workspace, patch, onDelete }: { page: CollectionKe
   return <Card><View style={styles.fields}>{fields}</View><View style={styles.dangerZone}><Text style={styles.dangerTitle}>Danger zone</Text><Text style={styles.helper}>Deleting parent records also removes dependent assignments.</Text><Button label="Delete record" variant="danger" icon="trash-outline" onPress={onDelete} /></View></Card>;
 }
 
-function PageFrame({ title, detail, onBack, backLabel = 'Back to resources', children }: { title: string; detail: string; onBack: () => void; backLabel?: string; children: React.ReactNode }) { return <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled"><Pressable accessibilityRole="button" accessibilityLabel={backLabel} onPress={onBack} style={styles.back}><Ionicons name="arrow-back" size={21} color={colors.primary} /><Text style={styles.backText}>{backLabel}</Text></Pressable><PageIntro eyebrow="RESOURCE REGISTER" title={title} detail={detail} />{children}</ScrollView>; }
+function PageFrame({ title, detail, onBack, backLabel = 'Back to resources', children }: { title: string; detail: string; onBack: () => void; backLabel?: string; children: React.ReactNode }) { return <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}><ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled"><Pressable accessibilityRole="button" accessibilityLabel={backLabel} onPress={onBack} style={styles.back}><Ionicons name="arrow-back" size={21} color={colors.primary} /><Text style={styles.backText}>{backLabel}</Text></Pressable><PageIntro eyebrow="RESOURCE REGISTER" title={title} detail={detail} />{children}</ScrollView></KeyboardAvoidingView>; }
 
 const styles = StyleSheet.create({
   page: { width: '100%', maxWidth: 960, alignSelf: 'center', padding: space.md, paddingBottom: 112, gap: space.md, backgroundColor: colors.canvas }, introRow: { gap: 12 }, actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, fields: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 }, fullField: { width: '100%', gap: 8 }, cardHeading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 12 }, cardHeadingText: { flex: 1, minWidth: 0 }, cardTitle: { color: colors.ink, ...type.title }, cardDetail: { color: colors.muted, ...type.body, marginTop: 3 }, sectionHeading: { color: colors.ink, ...type.title }, sectionDetail: { color: colors.muted, ...type.body, marginTop: 4 },
