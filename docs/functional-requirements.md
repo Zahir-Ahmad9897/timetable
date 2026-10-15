@@ -85,10 +85,10 @@ Forbidden states:
 
 - Goal: share the generated timetable.
 - Preconditions: validated generated result.
-- Behavior: export a UTF-8 `.csv` spreadsheet that opens in Excel, Numbers, and Google Sheets, then share it through the native OS UI.
+- Behavior: export a landscape, color-coded PDF with one weekly page per class group, readable course, teacher, room, time, and break labels, then share it through the native OS UI. On web, open the browser print preview so the user can save the same layout as PDF.
 - Failure: leave the result intact and show an actionable error.
-- Acceptance: the spreadsheet contains department, semester, section, day, time, course, teacher, room, and borrowing fields.
-- Evidence: export module and device share check.
+- Acceptance: every generated class group has a weekly page; course colors remain consistent; session labels include time, course, teacher, and room; the protected break is visible; native sharing uses a PDF file and web printing preserves the landscape layout.
+- Evidence: export module, rendered PDF inspection, and device share check.
 
 ### FR-TTM-009 — Organization and manual data modes
 

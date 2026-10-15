@@ -1,4 +1,5 @@
 import { AppPreferences, defaultPreferences } from './preferenceTypes';
+export { AppPreferences, defaultPreferences, ThemePreference } from './preferenceTypes';
 
 const KEY = 'iridai-timetable-preferences';
 

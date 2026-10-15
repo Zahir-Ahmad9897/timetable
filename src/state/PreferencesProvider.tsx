@@ -27,7 +27,10 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
   };
   const colorScheme = preferences.theme === 'system' ? (systemScheme === 'dark' ? 'dark' : 'light') : preferences.theme;
   useEffect(() => {
-    (Appearance.setColorScheme as (scheme: 'light' | 'dark' | null) => void)(preferences.theme === 'system' ? null : preferences.theme);
+    const setColorScheme = Appearance.setColorScheme as undefined | ((scheme: 'light' | 'dark' | null) => void);
+    if (typeof setColorScheme === 'function') {
+      setColorScheme(preferences.theme === 'system' ? null : preferences.theme);
+    }
   }, [preferences.theme]);
   useEffect(() => {
     if (typeof document === 'undefined') return;
