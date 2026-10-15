@@ -90,3 +90,42 @@ export function AcademicImportRoute() {
 ```
 
 If the user is on the Free tier, an aesthetic upgrade card is rendered in-place with a one-click checkout trigger.
+
+---
+
+## 5. Payment-Provisioning Security Invariants
+
+Paid access is fail-closed and server-authoritative:
+
+1. POST /api/subscription/checkout validates the requested plan and interval against server-side Stripe Price IDs.
+2. Checkout creates a pending record only. It never changes User.subscriptionTier.
+3. The mobile/web client never simulates an upgrade when the network or billing server is unavailable.
+4. POST /api/subscription/webhook verifies Stripe-Signature against the exact raw request body with a five-minute tolerance.
+5. A checkout event grants access only when it is paid, belongs to the pending user, matches its metadata, and resolves to the allowlisted Stripe Price ID.
+6. Processed Stripe event IDs are retained for idempotency, so webhook retries cannot provision twice.
+7. Subscription updated/deleted events affect only Stripe subscription IDs already linked by a verified checkout.
+8. Legacy local subscription rows without stripeSubscriptionId are preserved for audit but are not accepted as paid billing state.
+
+Required server variables:
+
+- STRIPE_SECRET_KEY
+- STRIPE_WEBHOOK_SECRET
+- STRIPE_PRO_MONTHLY_PRICE_ID
+- STRIPE_PRO_YEARLY_PRICE_ID
+- STRIPE_ENTERPRISE_MONTHLY_PRICE_ID
+- STRIPE_ENTERPRISE_YEARLY_PRICE_ID
+- APP_BASE_URL
+
+Configure the Stripe webhook endpoint as:
+
+    POST https://YOUR_DOMAIN/api/subscription/webhook
+
+Subscribe only to:
+
+- checkout.session.completed
+- checkout.session.async_payment_succeeded
+- checkout.session.async_payment_failed
+- customer.subscription.updated
+- customer.subscription.deleted
+
+Do not expose secret keys or webhook signing secrets through Expo public environment variables or client bundles.

@@ -11,7 +11,6 @@
 
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useAuth } from '../auth/AuthProvider';
 import { Button, StatusPill } from '../components/ui';
 import { colors, radius, space, type } from '../theme';
 import { PLANS } from './plans';
@@ -19,11 +18,10 @@ import { useSubscription } from './SubscriptionProvider';
 import { BillingInterval, SubscriptionPlan } from './types';
 
 export function PricingScreen() {
-  const { user } = useAuth();
-  const { upgradePlan, openCustomerPortal, isLoading } = useSubscription();
+  const { currentPlan, upgradePlan, openCustomerPortal, isLoading } = useSubscription();
   const [interval, setInterval] = useState<BillingInterval>('year');
 
-  const currentTier = user?.subscriptionTier || 'free';
+  const currentTier = currentPlan.tier;
 
   const handleSelectPlan = async (plan: SubscriptionPlan) => {
     if (plan.tier === currentTier) return;

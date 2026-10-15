@@ -18,16 +18,16 @@ export interface SubscriptionProviderProps {
 }
 
 export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [subscription, setSubscription] = useState<UserSubscription | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Compute active plan from user subscription tier
+  // Paid entitlements come only from the server's Stripe-backed subscription.
   const currentPlan = useMemo<SubscriptionPlan>(() => {
-    const tier = user?.subscriptionTier || subscription?.tier || 'free';
+    const tier = subscription?.status === 'active' ? subscription.tier : 'free';
     return getPlanByTier(tier);
-  }, [user?.subscriptionTier, subscription?.tier]);
+  }, [subscription?.status, subscription?.tier]);
 
   const refreshSubscription = useCallback(async () => {
     if (!isAuthenticated) {
@@ -60,7 +60,6 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
         if (checkoutUrl) {
           await Linking.openURL(checkoutUrl);
         }
-        await refreshSubscription();
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Unable to launch checkout.';
         setError(msg);
@@ -69,7 +68,7 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
         setIsLoading(false);
       }
     },
-    [refreshSubscription]
+    []
   );
 
   const openCustomerPortal = useCallback(async () => {

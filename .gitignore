@@ -47,6 +47,7 @@ firebase*.json
 # API keys, tokens, and secrets that may be saved locally
 **/secrets/
 **/private/
+server-data/
 *.secret
 *.token
 
@@ -128,6 +129,7 @@ ui design picture/
 # ---------------------------------------------------------------------------
 # 10. Testing & debugging artifacts
 # ---------------------------------------------------------------------------
+prompt.txt
 __snapshots__/
 *.snap
 .jest/

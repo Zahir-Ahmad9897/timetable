@@ -6,7 +6,7 @@
 # ------------------------------------------------------------------------------
 # Stage 1: Build & Bundle
 # ------------------------------------------------------------------------------
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 WORKDIR /app
 
 # Install security updates
@@ -25,11 +25,12 @@ COPY . .
 # Build production web bundle (SPA export)
 ENV NODE_ENV=production
 RUN pnpm run build:web
+RUN pnpm prune --prod
 
 # ------------------------------------------------------------------------------
 # Stage 2: Minimal Hardened Runtime
 # ------------------------------------------------------------------------------
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 
 # Security updates and wget for healthchecks
@@ -43,6 +44,13 @@ ENV HOST=0.0.0.0
 # Copy only build artifacts and server script
 COPY --from=build --chown=node:node /app/dist ./dist
 COPY --from=build --chown=node:node /app/server.js ./server.js
+COPY --from=build --chown=node:node /app/server ./server
+COPY --from=build --chown=node:node /app/package.json ./package.json
+COPY --from=build --chown=node:node /app/node_modules ./node_modules
+
+# Persist the embedded database and allow the non-root runtime user to update it.
+RUN mkdir -p /app/server-data && chown node:node /app/server-data
+VOLUME /app/server-data
 
 # Healthcheck to monitor container availability
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \

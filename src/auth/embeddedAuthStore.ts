@@ -295,12 +295,3 @@ export function embeddedGetUser(userId: string): User | null {
     isLocked: found.isLocked,
   };
 }
-
-export function embeddedUpdateTier(userId: string, tier: SubscriptionTier): void {
-  const users = loadUsersFromStorage();
-  const user = users.find((u) => u.id === userId);
-  if (user) {
-    user.subscriptionTier = tier;
-    saveUsersToStorage(users);
-  }
-}

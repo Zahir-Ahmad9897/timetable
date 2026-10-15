@@ -23,11 +23,13 @@ import {
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../auth/AuthProvider';
 import { Banner, Button, Card, PageIntro, StatusPill } from '../../components/ui';
+import { useSubscription } from '../../subscription/SubscriptionProvider';
 import { colors, radius, space, type } from '../../theme';
 
 export function AuthScreen() {
   const router = useRouter();
   const { login, register, isAuthenticated, user, logout } = useAuth();
+  const { currentPlan } = useSubscription();
 
   const [mode, setMode] = useState<'signin' | 'register'>('signin');
   const [email, setEmail] = useState('');
@@ -90,7 +92,7 @@ export function AuthScreen() {
               <Text style={styles.userName}>{user.displayName || user.email}</Text>
               <Text style={styles.userEmail}>{user.email}</Text>
             </View>
-            <StatusPill tone="info" label={user.subscriptionTier.toUpperCase()} />
+            <StatusPill tone="info" label={currentPlan.tier.toUpperCase()} />
           </View>
 
           {user.organizationName && (

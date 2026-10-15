@@ -15,6 +15,8 @@ The organization import did not contain live enrollment totals. The bundled snap
 
 ## Run
 
+Required runtime: Node.js 22.x and pnpm 12.11.2. The repository pins Node 22.23.3 in `.nvmrc`, enforces the Node 22 major through `package.json`, and uses Node 22 in CI and Docker.
+
 ```powershell
 cd timetable-mobile
 pnpm install
@@ -108,4 +110,3 @@ The platform includes an enterprise SaaS and defense-in-depth security layer:
     - [`docs/SUBSCRIPTION.md`](file:///d:/FaceRecognition/timetable-mobile/docs/SUBSCRIPTION.md) — SaaS monetization & quota guide
     - [`docs/DEPLOYMENT.md`](file:///d:/FaceRecognition/timetable-mobile/docs/DEPLOYMENT.md) — Production operations & container deployment
     - [`docs/API_CONTRACTS.md`](file:///d:/FaceRecognition/timetable-mobile/docs/API_CONTRACTS.md) — REST endpoints & webhook specs
-

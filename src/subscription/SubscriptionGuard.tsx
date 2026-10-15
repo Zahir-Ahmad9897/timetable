@@ -6,7 +6,6 @@
 
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { useAuth } from '../auth/AuthProvider';
 import { SubscriptionTier } from '../auth/types';
 import { Button, Card, StatusPill } from '../components/ui';
 import { colors, radius, space, type } from '../theme';
@@ -36,10 +35,9 @@ export function SubscriptionGuard({
   fallback,
   children,
 }: SubscriptionGuardProps) {
-  const { user } = useAuth();
   const { currentPlan, upgradePlan, isLoading } = useSubscription();
 
-  const userTier: SubscriptionTier = user?.subscriptionTier || 'free';
+  const userTier: SubscriptionTier = currentPlan.tier;
   let allowed = true;
 
   if (minimumTier) {

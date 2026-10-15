@@ -11,6 +11,11 @@
     "outDir": ".test-build",
     "rootDir": "."
   },
-  "include": ["src/domain/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "src/domain/**/*.ts",
+    "src/auth/__tests__/**/*.ts",
+    "src/security/__tests__/**/*.ts",
+    "src/subscription/__tests__/**/*.ts"
+  ],
+  "exclude": ["node_modules", "**/*.tsx"]
 }

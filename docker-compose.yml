@@ -17,8 +17,14 @@ services:
       - AUTH_JWT_SECRET=${AUTH_JWT_SECRET}
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - STRIPE_PRO_MONTHLY_PRICE_ID=${STRIPE_PRO_MONTHLY_PRICE_ID}
+      - STRIPE_PRO_YEARLY_PRICE_ID=${STRIPE_PRO_YEARLY_PRICE_ID}
+      - STRIPE_ENTERPRISE_MONTHLY_PRICE_ID=${STRIPE_ENTERPRISE_MONTHLY_PRICE_ID}
+      - STRIPE_ENTERPRISE_YEARLY_PRICE_ID=${STRIPE_ENTERPRISE_YEARLY_PRICE_ID}
     ports:
       - '127.0.0.1:3000:3000'
+    volumes:
+      - timetable-data:/app/server-data
     deploy:
       resources:
         limits:
@@ -32,6 +38,7 @@ services:
       options:
         max-size: '20m'
         max-file: '5'
+
     healthcheck:
       test: ['CMD', 'wget', '--spider', '-q', 'http://127.0.0.1:3000/']
       interval: 30s
@@ -57,3 +64,6 @@ services:
       options:
         max-size: '20m'
         max-file: '5'
+
+volumes:
+  timetable-data:

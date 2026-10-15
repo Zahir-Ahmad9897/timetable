@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "main": "expo-router/entry",
+  "engines": {
+    "node": ">=22 <23",
+    "pnpm": ">=12.11.2 <13"
+  },
   "scripts": {
     "start": "expo start",
     "start:tunnel": "expo start --tunnel",
@@ -12,9 +16,10 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "build:web": "expo export --platform web",
-    "serve": "node server.js",
+    "serve": "node --env-file-if-exists=.env server.js",
     "typecheck": "tsc --noEmit",
-    "test": "tsc -p tsconfig.tests.json && node --test .test-build/src/domain/__tests__/*.test.js",
+    "test:billing": "node --test server/__tests__/stripeBilling.test.js",
+    "test": "tsc -p tsconfig.tests.json && node --test .test-build/src/domain/__tests__/*.test.js .test-build/src/auth/__tests__/*.test.js .test-build/src/security/__tests__/*.test.js .test-build/src/subscription/__tests__/*.test.js && node --test server/__tests__/stripeBilling.test.js",
     "check": "pnpm run typecheck && pnpm test",
     "start:mobile": "expo start --go --lan --no-dev --minify"
   },
@@ -30,7 +35,7 @@
     "expo-linking": "~8.0.12",
     "expo-print": "~15.0.8",
     "expo-router": "~6.0.24",
-    "expo-secure-store": "^57.0.4",
+    "expo-secure-store": "~15.0.8",
     "expo-sharing": "~14.0.8",
     "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.9",
@@ -43,6 +48,7 @@
     "react-native-screens": "~4.16.0",
     "react-native-web": "~0.21.0",
     "react-native-worklets": "0.5.1",
+    "stripe": "23.0.0",
     "xlsx-js-style": "^1.2.0"
   },
   "devDependencies": {

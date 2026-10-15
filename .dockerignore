@@ -39,6 +39,7 @@ coverage
 **/private/
 credentials.json
 service-account*.json
+server-data
 
 # Security & audit reports
 security-reports
@@ -56,6 +57,7 @@ _archive
 *.patch
 *.swp
 *.swo
+prompt.txt
 
 # Visual references not part of the app
 ui design picture

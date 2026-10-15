@@ -3,12 +3,10 @@
  * @description HTTP client and billing lifecycle manager for SaaS subscriptions.
  *
  * Communicates with the SaaS backend and Stripe Billing.
- * Seamlessly handles authenticated requests, token attachment, and fallback simulation
- * when offline or in development demo mode.
+ * Handles authenticated requests and fails closed when billing is unavailable.
  */
 
-import { decodeToken, getAccessToken } from '../auth/tokenManager';
-import { embeddedUpdateTier } from '../auth/embeddedAuthStore';
+import { getAccessToken } from '../auth/tokenManager';
 import { getEnvironmentConfig } from '../config/environment';
 import {
   BillingInterval,
@@ -27,7 +25,7 @@ function getApiUrl(): string {
  * Retrieves the currently active user subscription.
  */
 export async function getCurrentSubscription(): Promise<UserSubscription | null> {
-  const token = getAccessToken();
+  const token = await getAccessToken();
   if (!token) return null;
 
   try {
@@ -82,24 +80,19 @@ export async function createCheckoutSession(
       body: JSON.stringify({ planId, interval }),
     });
 
-    if (response.ok) {
-      return await response.json();
+    if (!response.ok) {
+      const body = await response.json().catch(() => null) as { message?: string } | null;
+      throw new Error(body?.message || 'Secure checkout could not be created.');
     }
-  } catch {
-    // Network or server offline: fall back to embedded tier upgrade
+    return await response.json();
+  } catch (error) {
+    if (error instanceof Error && error.message !== 'Failed to fetch') {
+      throw error;
+    }
+    throw new Error(
+      'Secure checkout is unavailable. Your subscription was not changed. Check your connection and try again.',
+    );
   }
-
-  // Update embedded local store tier
-  const decoded = decodeToken(token);
-  if (decoded?.sub) {
-    const targetTier = planId === 'plan_enterprise' ? 'enterprise' : planId === 'plan_pro' ? 'pro' : 'free';
-    embeddedUpdateTier(decoded.sub, targetTier);
-  }
-
-  return {
-    sessionId: 'cs_embedded_local_' + Date.now(),
-    checkoutUrl: '',
-  };
 }
 
 
@@ -131,7 +124,7 @@ export async function createCustomerPortalSession(): Promise<CustomerPortalSessi
  * Cancels the user subscription at the end of the current billing cycle.
  */
 export async function cancelSubscription(): Promise<void> {
-  const token = getAccessToken();
+  const token = await getAccessToken();
   if (!token) throw new Error('Not authenticated.');
 
   const response = await fetch(`${getApiUrl()}/api/subscription/cancel`, {
@@ -151,7 +144,7 @@ export async function cancelSubscription(): Promise<void> {
  * Resumes a subscription scheduled for cancellation.
  */
 export async function resumeSubscription(): Promise<void> {
-  const token = getAccessToken();
+  const token = await getAccessToken();
   if (!token) throw new Error('Not authenticated.');
 
   const response = await fetch(`${getApiUrl()}/api/subscription/resume`, {
@@ -171,7 +164,7 @@ export async function resumeSubscription(): Promise<void> {
  * Fetches billing invoice history.
  */
 export async function getInvoices(): Promise<Invoice[]> {
-  const token = getAccessToken();
+  const token = await getAccessToken();
   if (!token) return [];
 
   try {

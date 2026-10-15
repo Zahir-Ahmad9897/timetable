@@ -10,3 +10,4 @@ export { AuthProvider, useAuth } from './AuthProvider';
 export { AuthGuard } from './AuthGuard';
 export * from './permissions';
 export * from './rbac';
+export * from './useRbac';

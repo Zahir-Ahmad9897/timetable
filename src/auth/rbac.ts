@@ -12,7 +12,6 @@
 import { SUBSCRIPTION_TIERS } from '../config/constants';
 import { Permission, ROLE_PERMISSIONS, TIER_PERMISSIONS } from './permissions';
 import { ROLE_HIERARCHY, SubscriptionTier, User, UserRole } from './types';
-import { useAuth } from './AuthProvider';
 
 // ---------------------------------------------------------------------------
 // Tier Hierarchy
@@ -93,32 +92,4 @@ export function hasAnyPermission(
   permissions: readonly Permission[],
 ): boolean {
   return permissions.some((perm) => hasPermission(user, perm));
-}
-
-// ---------------------------------------------------------------------------
-// React Hooks for RBAC
-// ---------------------------------------------------------------------------
-
-/**
- * Hook to evaluate whether the current authenticated user has a specific permission.
- */
-export function usePermission(permission: Permission): boolean {
-  const { user } = useAuth();
-  return hasPermission(user, permission);
-}
-
-/**
- * Hook to evaluate whether the current user meets a specific role requirement.
- */
-export function useRole(minimumRole: UserRole): boolean {
-  const { user } = useAuth();
-  return hasRole(user, minimumRole);
-}
-
-/**
- * Hook to evaluate whether the current user meets a specific subscription tier requirement.
- */
-export function useTier(minimumTier: SubscriptionTier): boolean {
-  const { user } = useAuth();
-  return meetsTierRequirement(user, minimumTier);
 }

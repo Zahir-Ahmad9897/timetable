@@ -7,11 +7,13 @@ import { Banner, Button, Card, PageIntro, StatusPill } from '../../components/ui
 import { ThemePreference } from '../../storage/preferenceTypes';
 import { usePreferences } from '../../state/PreferencesProvider';
 import { useWorkspace } from '../../state/WorkspaceProvider';
+import { useSubscription } from '../../subscription/SubscriptionProvider';
 import { colors, space, type } from '../../theme';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { user, isAuthenticated, logout } = useAuth();
+  const { currentPlan } = useSubscription();
   const { preferences, colorScheme, setPreference } = usePreferences();
   const { dataSource, dirty, importJson, exportJson, restoreSource } = useWorkspace();
   const version = Constants.expoConfig?.version || '1.0.0';
@@ -22,7 +24,7 @@ export default function SettingsScreen() {
       <View style={styles.heading}>
         <Text accessibilityRole="header" style={styles.title}>Account & SaaS Subscription</Text>
         <StatusPill
-          label={isAuthenticated && user ? `${user.subscriptionTier.toUpperCase()} • ${user.role.toUpperCase()}` : 'Standalone Guest'}
+          label={isAuthenticated && user ? `${currentPlan.tier.toUpperCase()} • ${user.role.toUpperCase()}` : 'Standalone Guest'}
           tone={isAuthenticated ? 'success' : 'neutral'}
         />
       </View>
@@ -56,4 +58,3 @@ export default function SettingsScreen() {
 
 
 const styles = StyleSheet.create({ page: { width: '100%', maxWidth: 960, alignSelf: 'center', padding: space.md, paddingBottom: 112, gap: space.md, backgroundColor: colors.canvas }, heading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }, title: { color: colors.ink, ...type.title }, detail: { color: colors.muted, ...type.body }, flex: { flex: 1 }, row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, switchRow: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 } });
-

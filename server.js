@@ -4,22 +4,24 @@
  *
  * timetable-mobile is an independent standalone product. This server provides:
  * 1. Embedded native authentication (Registration, Login, Refresh, Profile) with PBKDF2 and HMAC-SHA256 JWTs
- * 2. Embedded SaaS subscription management (Tiers, Entitlements, Simulation)
+ * 2. Stripe Checkout and signature-verified subscription provisioning
  * 3. Static asset serving and SPA routing for the Expo web client
  * 4. Hardened OWASP security headers (CSP, HSTS, X-Frame-Options)
- * 5. Zero external dependencies — pure Node.js standard library
+ * 5. Minimal runtime dependencies with the official Stripe SDK
  */
 
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { BillingError, createStripeBilling } = require('./server/stripeBilling');
 
 const PORT = Number(process.env.PORT) || 3000;
 const DIST = path.resolve(__dirname, 'dist');
 const BASE_PATH = '/timetable';
 const JWT_SECRET = process.env.AUTH_JWT_SECRET || 'iridai_timetable_embedded_jwt_secret_2026';
 const DB_FILE = path.resolve(__dirname, 'server-data', 'auth-db.json');
+const billing = createStripeBilling({ basePath: BASE_PATH });
 
 // Ensure database directory exists
 const DB_DIR = path.dirname(DB_FILE);
@@ -34,7 +36,12 @@ if (!fs.existsSync(DB_DIR)) {
 function loadDb() {
   if (fs.existsSync(DB_FILE)) {
     try {
-      return JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+      const db = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+      db.users ||= [];
+      db.subscriptions ||= [];
+      db.pendingCheckouts ||= [];
+      db.processedStripeEvents ||= [];
+      return db;
     } catch {
       // Parse error, re-seed
     }
@@ -54,7 +61,7 @@ function loadDb() {
         salt: initialSalt,
         passwordHash: demoHash,
         role: 'admin',
-        subscriptionTier: 'pro',
+        subscriptionTier: 'free',
         emailVerified: true,
         createdAt: new Date().toISOString(),
         isLocked: false,
@@ -64,8 +71,8 @@ function loadDb() {
       {
         id: 'sub_demo_active',
         userId: 'usr_demo_admin',
-        planId: 'plan_pro',
-        tier: 'pro',
+        planId: 'plan_free',
+        tier: 'free',
         status: 'active',
         interval: 'year',
         currentPeriodStart: new Date().toISOString(),
@@ -73,6 +80,8 @@ function loadDb() {
         cancelAtPeriodEnd: false,
       },
     ],
+    pendingCheckouts: [],
+    processedStripeEvents: [],
   };
 
   fs.writeFileSync(DB_FILE, JSON.stringify(defaultDb, null, 2), 'utf-8');
@@ -145,26 +154,36 @@ function getAuthUser(req, db) {
 // Request Body Reader
 // -----------------------------------------------------------------------------
 
-function readJsonBody(req) {
+function readRawBody(req) {
   return new Promise((resolve, reject) => {
-    let body = '';
+    const chunks = [];
+    let received = 0;
+    let rejected = false;
     req.on('data', (chunk) => {
-      body += chunk;
-      if (body.length > 1024 * 1024) {
-        // 1MB limit
+      if (rejected) return;
+      received += chunk.length;
+      if (received > 1024 * 1024) {
+        rejected = true;
         reject(new Error('Payload too large'));
+        return;
       }
+      chunks.push(chunk);
     });
     req.on('end', () => {
-      if (!body) return resolve({});
-      try {
-        resolve(JSON.parse(body));
-      } catch {
-        reject(new Error('Invalid JSON'));
-      }
+      if (!rejected) resolve(Buffer.concat(chunks));
     });
     req.on('error', reject);
   });
+}
+
+async function readJsonBody(req) {
+  const rawBody = await readRawBody(req);
+  if (rawBody.length === 0) return {};
+  try {
+    return JSON.parse(rawBody.toString('utf8'));
+  } catch {
+    throw new Error('Invalid JSON');
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -188,6 +207,26 @@ async function handleApiRequest(req, res, url) {
   // Health check
   if (pathname === '/api/health') {
     return sendJson(200, { status: 'healthy', uptime: process.uptime() });
+  }
+
+  // Paid access is provisioned only from an authentic Stripe event.
+  if (pathname === '/api/subscription/webhook' && method === 'POST') {
+    try {
+      const rawBody = await readRawBody(req);
+      const event = billing.constructWebhookEvent(rawBody, req.headers['stripe-signature']);
+      const result = await billing.processWebhookEvent(event, db);
+      saveDb(db);
+      return sendJson(200, { received: true, duplicate: result.duplicate });
+    } catch (error) {
+      if (error instanceof BillingError) {
+        return sendJson(error.status, { code: error.code, message: error.message });
+      }
+      console.error('[billing] Stripe webhook processing failed:', error);
+      return sendJson(500, {
+        code: 'WEBHOOK_PROCESSING_FAILED',
+        message: 'Stripe webhook could not be processed.',
+      });
+    }
   }
 
   // POST /api/auth/register
@@ -331,11 +370,14 @@ async function handleApiRequest(req, res, url) {
     if (!user) {
       return sendJson(401, { message: 'Unauthorized.' });
     }
-    const sub = db.subscriptions.find((s) => s.userId === user.id) || {
+    const sub = db.subscriptions.find(
+      (subscription) =>
+        subscription.userId === user.id && Boolean(subscription.stripeSubscriptionId),
+    ) || {
       id: 'sub_default_' + user.id,
       userId: user.id,
-      planId: user.subscriptionTier === 'pro' ? 'plan_pro' : user.subscriptionTier === 'enterprise' ? 'plan_enterprise' : 'plan_free',
-      tier: user.subscriptionTier,
+      planId: 'plan_free',
+      tier: 'free',
       status: 'active',
       interval: 'month',
       currentPeriodStart: new Date().toISOString(),
@@ -351,37 +393,42 @@ async function handleApiRequest(req, res, url) {
     if (!user) {
       return sendJson(401, { message: 'Unauthorized.' });
     }
-    const { planId, interval } = await readJsonBody(req);
-    const targetTier = planId === 'plan_enterprise' ? 'enterprise' : planId === 'plan_pro' ? 'pro' : 'free';
+    try {
+      const { planId, interval } = await readJsonBody(req);
+      const current = db.subscriptions.find(
+        (subscription) =>
+          subscription.userId === user.id &&
+          Boolean(subscription.stripeSubscriptionId) &&
+          ['active', 'trialing'].includes(subscription.status) &&
+          subscription.tier !== 'free',
+      );
+      if (current) {
+        return sendJson(409, {
+          code: 'SUBSCRIPTION_ALREADY_ACTIVE',
+          message: 'Use the billing portal to change an active paid subscription.',
+        });
+      }
 
-    // Upgrade user tier in embedded database
-    user.subscriptionTier = targetTier;
-    let sub = db.subscriptions.find((s) => s.userId === user.id);
-    if (!sub) {
-      sub = {
-        id: 'sub_' + crypto.randomBytes(8).toString('hex'),
-        userId: user.id,
-        planId: planId || 'plan_pro',
-        tier: targetTier,
-        status: 'active',
-        interval: interval || 'month',
-        currentPeriodStart: new Date().toISOString(),
-        currentPeriodEnd: new Date(Date.now() + 30 * 86400 * 1000).toISOString(),
-        cancelAtPeriodEnd: false,
-      };
-      db.subscriptions.push(sub);
-    } else {
-      sub.planId = planId;
-      sub.tier = targetTier;
-      sub.interval = interval || 'month';
-      sub.status = 'active';
+      const checkout = await billing.createCheckoutSession(user, planId, interval);
+      db.pendingCheckouts.push(checkout.pendingCheckout);
+      if (db.pendingCheckouts.length > 1_000) {
+        db.pendingCheckouts.splice(0, db.pendingCheckouts.length - 1_000);
+      }
+      saveDb(db);
+      return sendJson(200, {
+        sessionId: checkout.sessionId,
+        checkoutUrl: checkout.checkoutUrl,
+      });
+    } catch (error) {
+      if (error instanceof BillingError) {
+        return sendJson(error.status, { code: error.code, message: error.message });
+      }
+      console.error('[billing] Stripe checkout creation failed:', error);
+      return sendJson(502, {
+        code: 'STRIPE_UNAVAILABLE',
+        message: 'Secure checkout is temporarily unavailable. No subscription was changed.',
+      });
     }
-    saveDb(db);
-
-    return sendJson(200, {
-      sessionId: 'cs_embedded_' + Date.now(),
-      checkoutUrl: `${BASE_PATH}/pricing?upgraded=true`,
-    });
   }
 
   // Default API fallback

@@ -40,10 +40,6 @@ export interface AppEnvironment {
   // -- Subscription (Stripe) ------------------------------------------------
   readonly stripe: {
     readonly publishableKey: string;
-    readonly secretKey: string;
-    readonly webhookSecret: string;
-    readonly proPriceId: string;
-    readonly enterprisePriceId: string;
   };
 
   // -- Security -------------------------------------------------------------
@@ -143,10 +139,6 @@ export function getConfig(): AppEnvironment {
 
     stripe: Object.freeze({
       publishableKey: env('STRIPE_PUBLISHABLE_KEY', ''),
-      secretKey: envRequired('STRIPE_SECRET_KEY'),
-      webhookSecret: envRequired('STRIPE_WEBHOOK_SECRET'),
-      proPriceId: env('STRIPE_PRO_PRICE_ID', ''),
-      enterprisePriceId: env('STRIPE_ENTERPRISE_PRICE_ID', ''),
     }),
 
     security: Object.freeze({
@@ -188,4 +180,3 @@ export function getEnvironmentConfig(): AppEnvironment & { API_URL: string } {
 export function resetConfig(): void {
   _config = null;
 }
-
