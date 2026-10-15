@@ -50,6 +50,11 @@ export function AuthGuard({
 }: AuthGuardProps) {
   const { isAuthenticated, isLoading, user } = useAuth();
   const router = useRouter();
+  React.useEffect(() => {
+    if (!isLoading && (!isAuthenticated || !user)) {
+      router.replace('/auth');
+    }
+  }, [isAuthenticated, isLoading, router, user]);
 
   // ---- Loading state -------------------------------------------------------
   if (isLoading) {
@@ -64,7 +69,6 @@ export function AuthGuard({
   // ---- Not authenticated → redirect to login -------------------------------
   if (!isAuthenticated || !user) {
     // Use setTimeout to avoid state update during render
-    setTimeout(() => router.replace('/login' as never), 0);
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={colors.accent} />

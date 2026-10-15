@@ -145,3 +145,14 @@ Protects entire route subtrees with customizable access denied fallbacks:
   <AcademicImportScreen />
 </AuthGuard>
 ```
+
+### Protected route policy
+
+| Route boundary | Minimum access |
+|---|---|
+| Main tab layout, timetable, settings, and search | Authenticated viewer |
+| Workspace editors and resource editors | Editor |
+| Timetable generation | Editor |
+| Academic Excel import | Pro editor |
+
+Unauthenticated navigation is redirected to `/auth` from an effect, so navigation never mutates state during React rendering. These client guards protect the interface and local workflow only. They are not a substitute for server-side authorization on API operations; the server must independently resolve identity, tenant membership, role, and entitlement for every protected request.

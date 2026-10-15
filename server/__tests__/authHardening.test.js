@@ -33,4 +33,21 @@ test('authentication hardening policy', async (t) => {
     assert.doesNotMatch(authService, /offline simulated success/i);
     assert.doesNotMatch(authService, /graceful offline no-op/i);
   });
+
+  await t.test('guards every route that exposes workspace data or mutations', () => {
+    const guardedRoutes = [
+      'app/(tabs)/_layout.tsx',
+      'app/(tabs)/generate.tsx',
+      'app/(tabs)/workspace.tsx',
+      'app/import-academic.tsx',
+      'app/resource/[page].tsx',
+      'app/search.tsx',
+    ];
+
+    for (const route of guardedRoutes) {
+      assert.match(read(route), /<AuthGuard(?:\s|>)/, `${route} must render through AuthGuard`);
+    }
+    assert.match(read('src/auth/AuthGuard.tsx'), /router\.replace\('\/auth'\)/);
+    assert.doesNotMatch(read('src/auth/AuthGuard.tsx'), /setTimeout\s*\(/);
+  });
 });
