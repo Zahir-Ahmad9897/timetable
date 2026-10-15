@@ -15,7 +15,9 @@
  * from or modify any existing domain, storage, or state module.
  */
 
+import { Platform } from 'react-native';
 import { RATE_LIMITS } from '../config/constants';
+import { getEnvironmentConfig } from '../config/environment';
 import {
   AuthTokens,
   LoginRequest,
@@ -25,8 +27,7 @@ import {
   RegisterResponse,
   User,
 } from './types';
-import { clearTokens, decodeToken, getAccessToken, getRefreshToken, storeTokens } from './tokenManager';
-import { embeddedGetUser, embeddedLogin, embeddedRegister } from './embeddedAuthStore';
+import { clearTokens, getAccessToken, getRefreshToken, storeTokens } from './tokenManager';
 
 
 // ---------------------------------------------------------------------------
@@ -38,7 +39,7 @@ import { embeddedGetUser, embeddedLogin, embeddedRegister } from './embeddedAuth
  * In production, this should be set to the actual backend URL.
  * During development, a mock implementation can be used.
  */
-let _apiBaseUrl = '';
+let _apiBaseUrl = getEnvironmentConfig().API_URL.replace(/\/+$/, '');
 
 export function configureAuthService(baseUrl: string): void {
   _apiBaseUrl = baseUrl.replace(/\/+$/, '');
@@ -59,6 +60,34 @@ export class AuthError extends Error {
   }
 }
 
+type WireAuthTokens = Omit<AuthTokens, 'expiresAt'> & {
+  readonly expiresAt?: number;
+  readonly expiresIn?: number;
+};
+
+type WireLoginResponse = Omit<LoginResponse, 'tokens'> & {
+  readonly tokens: WireAuthTokens;
+};
+
+type WireRegisterResponse = Omit<RegisterResponse, 'tokens'> & {
+  readonly tokens: WireAuthTokens;
+};
+
+function normalizeTokens(tokens: AuthTokens | WireAuthTokens): AuthTokens {
+  const expiresAt = Number.isFinite(tokens.expiresAt)
+    ? Number(tokens.expiresAt)
+    : Math.floor(Date.now() / 1000) + Number((tokens as WireAuthTokens).expiresIn || 0);
+  if (!tokens.accessToken || !tokens.refreshToken || expiresAt <= Math.floor(Date.now() / 1000)) {
+    throw new AuthError('The authentication server returned an invalid token response.', 502, 'INVALID_TOKEN_RESPONSE');
+  }
+  return {
+    accessToken: tokens.accessToken,
+    refreshToken: tokens.refreshToken,
+    expiresAt,
+    tokenType: 'Bearer',
+  };
+}
+
 interface RequestOptions {
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   path: string;
@@ -69,6 +98,13 @@ interface RequestOptions {
 }
 
 async function request<T>(options: RequestOptions): Promise<T> {
+  if (!_apiBaseUrl && Platform.OS !== 'web') {
+    throw new AuthError(
+      'The mobile API URL is not configured. Set EXPO_PUBLIC_API_URL to the HTTPS backend origin.',
+      503,
+      'API_NOT_CONFIGURED',
+    );
+  }
   const url = `${_apiBaseUrl}${options.path}`;
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -136,14 +172,14 @@ async function attemptTokenRefresh(): Promise<boolean> {
   if (!refreshToken) return false;
 
   try {
-    const response = await request<{ tokens: AuthTokens }>({
+    const response = await request<{ tokens: WireAuthTokens }>({
       method: 'POST',
       path: '/api/auth/refresh',
       body: { refreshToken },
       authenticated: false,
       skipRefresh: true,
     });
-    await storeTokens(response.tokens);
+    await storeTokens(normalizeTokens(response.tokens));
     return true;
   } catch {
     return false;
@@ -160,33 +196,15 @@ async function attemptTokenRefresh(): Promise<boolean> {
  * @throws {AuthError} On invalid credentials, locked account, or rate limiting
  */
 export async function login(credentials: LoginRequest): Promise<LoginResponse> {
-  try {
-    const response = await request<LoginResponse>({
-      method: 'POST',
-      path: '/api/auth/login',
-      body: credentials,
-      authenticated: false,
-    });
-    await storeTokens(response.tokens);
-    return response;
-  } catch (err) {
-    if (err instanceof AuthError && (err.statusCode === 400 || err.statusCode === 401 || err.statusCode === 429)) {
-      throw err;
-    }
-    // Remote API unavailable: fall back to embedded auth store
-    const embedded = await embeddedLogin(credentials.email, credentials.password);
-    const tokens: AuthTokens = {
-      accessToken: embedded.accessToken,
-      refreshToken: embedded.refreshToken,
-      expiresAt: Math.floor(Date.now() / 1000) + embedded.expiresIn,
-      tokenType: 'Bearer',
-    };
-    await storeTokens(tokens);
-    return {
-      user: embedded.user,
-      tokens,
-    };
-  }
+  const response = await request<WireLoginResponse>({
+    method: 'POST',
+    path: '/api/auth/login',
+    body: credentials,
+    authenticated: false,
+  });
+  const tokens = normalizeTokens(response.tokens);
+  await storeTokens(tokens);
+  return { ...response, tokens };
 }
 
 /**
@@ -195,34 +213,15 @@ export async function login(credentials: LoginRequest): Promise<LoginResponse> {
  * @throws {AuthError} On validation failure, duplicate email, or weak password
  */
 export async function register(data: RegisterRequest): Promise<RegisterResponse> {
-  try {
-    const response = await request<RegisterResponse>({
-      method: 'POST',
-      path: '/api/auth/register',
-      body: data,
-      authenticated: false,
-    });
-    await storeTokens(response.tokens);
-    return response;
-  } catch (err) {
-    if (err instanceof AuthError && (err.statusCode === 400 || err.statusCode === 409)) {
-      throw err;
-    }
-    // Remote API unavailable: fall back to embedded auth store
-    const embedded = await embeddedRegister(data.email, data.password, data.displayName, data.organizationName);
-    const tokens: AuthTokens = {
-      accessToken: embedded.accessToken,
-      refreshToken: embedded.refreshToken,
-      expiresAt: Math.floor(Date.now() / 1000) + embedded.expiresIn,
-      tokenType: 'Bearer',
-    };
-    await storeTokens(tokens);
-    return {
-      user: embedded.user,
-      tokens,
-      message: 'Account registered successfully.',
-    };
-  }
+  const response = await request<WireRegisterResponse>({
+    method: 'POST',
+    path: '/api/auth/register',
+    body: data,
+    authenticated: false,
+  });
+  const tokens = normalizeTokens(response.tokens);
+  await storeTokens(tokens);
+  return { ...response, tokens };
 }
 
 /**
@@ -249,16 +248,12 @@ export async function logout(): Promise<void> {
  * Always returns success to prevent email enumeration attacks.
  */
 export async function requestPasswordReset(email: string): Promise<void> {
-  try {
-    await request<void>({
-      method: 'POST',
-      path: '/api/auth/password-reset',
-      body: { email },
-      authenticated: false,
-    });
-  } catch {
-    // Graceful offline no-op
-  }
+  await request<void>({
+    method: 'POST',
+    path: '/api/auth/password-reset',
+    body: { email },
+    authenticated: false,
+  });
 }
 
 /**
@@ -267,16 +262,11 @@ export async function requestPasswordReset(email: string): Promise<void> {
  * @throws {AuthError} On incorrect current password or weak new password
  */
 export async function changePassword(data: PasswordChangeRequest): Promise<void> {
-  try {
-    await request<void>({
-      method: 'POST',
-      path: '/api/auth/password-change',
-      body: data,
-    });
-  } catch (err) {
-    if (err instanceof AuthError) throw err;
-    // Offline simulated success
-  }
+  await request<void>({
+    method: 'POST',
+    path: '/api/auth/password-change',
+    body: data,
+  });
 }
 
 /**
@@ -285,34 +275,10 @@ export async function changePassword(data: PasswordChangeRequest): Promise<void>
  * @throws {AuthError} On expired session
  */
 export async function getProfile(): Promise<User> {
-  try {
-    return await request<User>({
-      method: 'GET',
-      path: '/api/auth/profile',
-    });
-  } catch (err) {
-    // Fall back to decoding stored token / embedded store
-    const token = await getAccessToken();
-    if (token) {
-      const decoded = decodeToken(token);
-      if (decoded?.sub) {
-        const u = embeddedGetUser(decoded.sub);
-        if (u) return u;
-        // Synthesize user from token claims
-        return {
-          id: decoded.sub,
-          email: decoded.email,
-          displayName: decoded.email.split('@')[0] || 'User',
-          role: decoded.role,
-          subscriptionTier: decoded.tier,
-          emailVerified: true,
-          createdAt: new Date().toISOString(),
-          isLocked: false,
-        };
-      }
-    }
-    throw err;
-  }
+  return request<User>({
+    method: 'GET',
+    path: '/api/auth/profile',
+  });
 }
 
 /**
@@ -341,7 +307,7 @@ export async function refreshSession(): Promise<AuthTokens> {
     throw new AuthError('No refresh token available.', 401, 'NO_REFRESH_TOKEN');
   }
 
-  const response = await request<{ tokens: AuthTokens }>({
+  const response = await request<{ tokens: WireAuthTokens }>({
     method: 'POST',
     path: '/api/auth/refresh',
     body: { refreshToken },
@@ -349,8 +315,9 @@ export async function refreshSession(): Promise<AuthTokens> {
     skipRefresh: true,
   });
 
-  await storeTokens(response.tokens);
-  return response.tokens;
+  const tokens = normalizeTokens(response.tokens);
+  await storeTokens(tokens);
+  return tokens;
 }
 
 /**

@@ -1,9 +1,9 @@
 /**
  * @file server.js
- * @description Self-contained production HTTP server with embedded Auth & Subscription API.
+ * @description Self-contained HTTP server with Auth & Subscription APIs.
  *
  * timetable-mobile is an independent standalone product. This server provides:
- * 1. Embedded native authentication (Registration, Login, Refresh, Profile) with PBKDF2 and HMAC-SHA256 JWTs
+ * 1. Server-enforced authentication (Registration, Login, Refresh, Profile)
  * 2. Stripe Checkout and signature-verified subscription provisioning
  * 3. Static asset serving and SPA routing for the Expo web client
  * 4. Hardened OWASP security headers (CSP, HSTS, X-Frame-Options)
@@ -30,7 +30,7 @@ if (!fs.existsSync(DB_DIR)) {
 }
 
 // -----------------------------------------------------------------------------
-// Embedded Database Operations
+// Database Operations
 // -----------------------------------------------------------------------------
 
 function loadDb() {
@@ -41,45 +41,19 @@ function loadDb() {
       db.subscriptions ||= [];
       db.pendingCheckouts ||= [];
       db.processedStripeEvents ||= [];
+      // Known development credentials shipped in an earlier build must never
+      // remain usable after an upgrade.
+      db.users = db.users.filter((user) => user.id !== 'usr_demo_admin');
+      db.subscriptions = db.subscriptions.filter((subscription) => subscription.userId !== 'usr_demo_admin');
       return db;
     } catch {
       // Parse error, re-seed
     }
   }
 
-  // Pre-seed default demo administrator
-  const initialSalt = crypto.randomBytes(16).toString('hex');
-  const demoHash = crypto.pbkdf2Sync('Password123!', initialSalt, 100000, 64, 'sha512').toString('hex');
-
   const defaultDb = {
-    users: [
-      {
-        id: 'usr_demo_admin',
-        email: 'admin@irid.ai',
-        displayName: 'Academic Coordinator',
-        organizationName: 'Faculty of Engineering',
-        salt: initialSalt,
-        passwordHash: demoHash,
-        role: 'admin',
-        subscriptionTier: 'free',
-        emailVerified: true,
-        createdAt: new Date().toISOString(),
-        isLocked: false,
-      },
-    ],
-    subscriptions: [
-      {
-        id: 'sub_demo_active',
-        userId: 'usr_demo_admin',
-        planId: 'plan_free',
-        tier: 'free',
-        status: 'active',
-        interval: 'year',
-        currentPeriodStart: new Date().toISOString(),
-        currentPeriodEnd: new Date(Date.now() + 365 * 86400 * 1000).toISOString(),
-        cancelAtPeriodEnd: false,
-      },
-    ],
+    users: [],
+    subscriptions: [],
     pendingCheckouts: [],
     processedStripeEvents: [],
   };

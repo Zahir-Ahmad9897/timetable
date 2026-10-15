@@ -5,6 +5,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        EXPO_PUBLIC_API_URL: ${EXPO_PUBLIC_API_URL:-}
     image: iridai/timetable:latest
     container_name: iridai-timetable-app
     restart: unless-stopped

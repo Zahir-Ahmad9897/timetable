@@ -1,12 +1,12 @@
 /**
  * @module screens/auth/AuthScreen
- * @description Standalone authentication screen with Sign In and Registration tabs.
+ * @description Server-backed authentication screen with Sign In and Registration tabs.
  *
  * Provides a self-contained authentication experience for timetable-mobile:
  * - Login with email & password
  * - Registration with organization branding
- * - One-click demo credentials for offline evaluators
- * - Immediate session activation without external dependencies
+ * - Fail-closed API authentication
+ * - Secure token storage through the authentication provider
  */
 
 import React, { useState } from 'react';
@@ -71,13 +71,6 @@ export function AuthScreen() {
     }
   };
 
-  const fillDemoCredentials = () => {
-    setEmail('admin@irid.ai');
-    setPassword('Password123!');
-    setMode('signin');
-    setError(null);
-  };
-
   if (isAuthenticated && user) {
     return (
       <ScrollView contentContainerStyle={styles.container}>
@@ -132,7 +125,7 @@ export function AuthScreen() {
     >
       <ScrollView contentContainerStyle={styles.container}>
         <PageIntro
-          eyebrow="STANDALONE AUTHENTICATION"
+          eyebrow="SECURE ACCOUNT ACCESS"
           title="Sign in to Timetable"
           detail="Access your private workspaces, subscription quotas, and institutional timetable tools."
         />
@@ -229,16 +222,6 @@ export function AuthScreen() {
             />
           </View>
 
-          {mode === 'signin' && (
-            <View style={styles.demoSection}>
-              <Text style={styles.demoText}>Testing locally or offline?</Text>
-              <Button
-                variant="quiet"
-                label="Quick-Fill Demo Administrator"
-                onPress={fillDemoCredentials}
-              />
-            </View>
-          )}
         </Card>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -306,18 +289,6 @@ const styles = StyleSheet.create({
   },
   submitWrapper: {
     marginTop: space.xs,
-  },
-  demoSection: {
-    alignItems: 'center',
-    marginTop: space.sm,
-    paddingTop: space.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.line,
-    gap: 4,
-  },
-  demoText: {
-    ...type.caption,
-    color: colors.muted,
   },
   cardHeader: {
     flexDirection: 'row',

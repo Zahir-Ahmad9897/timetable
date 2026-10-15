@@ -24,6 +24,8 @@ export interface AppEnvironment {
   readonly appBaseUrl: string;
   /** URL path prefix for client-side routing */
   readonly appBasePath: string;
+  /** Public SaaS API origin. Empty means same-origin web requests. */
+  readonly apiUrl: string;
 
   // -- Authentication -------------------------------------------------------
   readonly auth: {
@@ -119,12 +121,18 @@ export function getConfig(): AppEnvironment {
   if (_config) return _config;
 
   const nodeEnv = (env('NODE_ENV', 'development') as AppEnvironment['nodeEnv']);
+  // Expo statically inlines EXPO_PUBLIC_* values only when accessed with dot
+  // notation. Keep this direct reference so native production bundles receive
+  // the configured API origin.
+  const publicApiUrl =
+    typeof process !== 'undefined' ? process.env.EXPO_PUBLIC_API_URL || '' : '';
 
   _config = Object.freeze({
     nodeEnv,
     appVersion: env('APP_VERSION', '1.0.0'),
     appBaseUrl: env('APP_BASE_URL', 'http://localhost:3000'),
     appBasePath: env('APP_BASE_PATH', '/timetable'),
+    apiUrl: publicApiUrl,
 
     auth: Object.freeze({
       jwtSecret: envRequired('AUTH_JWT_SECRET'),
@@ -170,7 +178,7 @@ export function getEnvironmentConfig(): AppEnvironment & { API_URL: string } {
   const cfg = getConfig();
   return {
     ...cfg,
-    API_URL: cfg.appBaseUrl,
+    API_URL: cfg.apiUrl,
   };
 }
 

@@ -23,6 +23,8 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 
 # Build production web bundle (SPA export)
+ARG EXPO_PUBLIC_API_URL=
+ENV EXPO_PUBLIC_API_URL=$EXPO_PUBLIC_API_URL
 ENV NODE_ENV=production
 RUN pnpm run build:web
 RUN pnpm prune --prod

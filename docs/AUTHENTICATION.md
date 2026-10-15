@@ -1,22 +1,25 @@
 # Authentication & Authorization Architecture
 
 > **Component**: `src/auth/`  
-> **Status**: Production Ready  
+> **Status**: Security hardening in progress
 > **Author**: Senior Systems Engineer
 
 ---
 
 ## 1. Architectural Overview
 
-The authentication and authorization subsystem wraps around the existing offline-capable application without modifying any core scheduling domain algorithms or local storage adapters.
+The authentication subsystem is server-backed and fail-closed. Scheduling data can remain offline-capable, but identity, session, authorization, and subscription decisions must come from trusted server state.
 
 ### Standalone Self-Contained Architecture (Decoupled from FaceRecognition)
 
 **`timetable-mobile` is engineered as a 100% standalone product**, completely independent of the adjacent `FaceRecognition` codebase:
 - **No External Auth Microservice**: Timetable does not query, import, or depend on FaceRecognition's backend or auth service.
-- **Embedded Server API (`server.js`)**: Standalone production deployments run their own built-in Node.js authentication endpoints (`/api/auth/register`, `/api/auth/login`, `/api/auth/profile`, `/api/subscription/*`) using native Node.js crypto (PBKDF2 with 100,000 iterations and HMAC-SHA256 JWTs) and local persistence in `server-data/auth-db.json`.
-- **Embedded Client Engine (`src/auth/embeddedAuthStore.ts`)**: For mobile app (Expo) and offline browser operation, timetable-mobile runs a self-contained local auth engine so users can register, sign in, manage profiles, and unlock SaaS tiers completely offline without a server.
-- **Dedicated UI (`app/auth.tsx` & `src/screens/auth/AuthScreen.tsx`)**: Standalone Sign In and Account Registration interface with pre-seeded demo administrator credentials (`admin@irid.ai` / `Password123!`).
+- **Server API (`server.js`)**: Standalone deployments expose authentication and subscription endpoints. The client never creates a local identity or grants a local subscription when this API is unavailable.
+- **Fail-closed client (`src/auth/authService.ts`)**: Login, registration, profile, password, and refresh operations propagate API failures. No embedded client authentication engine or public demo account is shipped.
+- **Dedicated UI (`app/auth.tsx` and `src/screens/auth/AuthScreen.tsx`)**: Sign-in and registration collect credentials but do not embed, display, or auto-fill shared credentials.
+- **Native API configuration**: Set `EXPO_PUBLIC_API_URL` to the HTTPS backend origin before producing Android or iOS builds. Same-origin web deployments may leave it empty.
+
+> The current JSON-backed server is a transitional deployment baseline, not the final multi-tenant data architecture. Tenant isolation, durable refresh-session storage, server-side RBAC, and production database migration are tracked as required hardening work.
 
 
 ### Dual-Layer Security Model
