@@ -26,6 +26,7 @@ function Navigator() {
       <Stack.Screen name="resource/[page]" />
       <Stack.Screen name="import-academic" />
       <Stack.Screen name="pricing" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+      <Stack.Screen name="auth" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
       <Stack.Screen name="search" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
     </Stack>
     <GlobalToast />

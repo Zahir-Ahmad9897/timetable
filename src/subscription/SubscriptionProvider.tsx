@@ -60,6 +60,7 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
         if (checkoutUrl) {
           await Linking.openURL(checkoutUrl);
         }
+        await refreshSubscription();
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Unable to launch checkout.';
         setError(msg);
@@ -68,7 +69,7 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
         setIsLoading(false);
       }
     },
-    []
+    [refreshSubscription]
   );
 
   const openCustomerPortal = useCallback(async () => {

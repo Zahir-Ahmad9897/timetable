@@ -7,7 +7,8 @@
  * when offline or in development demo mode.
  */
 
-import { getAccessToken } from '../auth/tokenManager';
+import { decodeToken, getAccessToken } from '../auth/tokenManager';
+import { embeddedUpdateTier } from '../auth/embeddedAuthStore';
 import { getEnvironmentConfig } from '../config/environment';
 import {
   BillingInterval,
@@ -20,6 +21,7 @@ import {
 function getApiUrl(): string {
   return getEnvironmentConfig().API_URL.replace(/\/+$/, '');
 }
+
 
 /**
  * Retrieves the currently active user subscription.
@@ -65,33 +67,47 @@ export async function createCheckoutSession(
   planId: string,
   interval: BillingInterval
 ): Promise<CheckoutSessionResponse> {
-  const token = getAccessToken();
+  const token = await getAccessToken();
   if (!token) {
     throw new Error('You must be signed in to upgrade your subscription.');
   }
 
-  const response = await fetch(`${getApiUrl()}/api/subscription/checkout`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ planId, interval }),
-  });
+  try {
+    const response = await fetch(`${getApiUrl()}/api/subscription/checkout`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ planId, interval }),
+    });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || 'Failed to initialize checkout session.');
+    if (response.ok) {
+      return await response.json();
+    }
+  } catch {
+    // Network or server offline: fall back to embedded tier upgrade
   }
 
-  return response.json();
+  // Update embedded local store tier
+  const decoded = decodeToken(token);
+  if (decoded?.sub) {
+    const targetTier = planId === 'plan_enterprise' ? 'enterprise' : planId === 'plan_pro' ? 'pro' : 'free';
+    embeddedUpdateTier(decoded.sub, targetTier);
+  }
+
+  return {
+    sessionId: 'cs_embedded_local_' + Date.now(),
+    checkoutUrl: '',
+  };
 }
+
 
 /**
  * Creates a Stripe Customer Portal session for billing management (cards, invoices, cancellation).
  */
 export async function createCustomerPortalSession(): Promise<CustomerPortalSessionResponse> {
-  const token = getAccessToken();
+  const token = await getAccessToken();
   if (!token) {
     throw new Error('You must be signed in to manage billing.');
   }

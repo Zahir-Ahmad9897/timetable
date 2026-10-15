@@ -10,6 +10,15 @@
 
 The authentication and authorization subsystem wraps around the existing offline-capable application without modifying any core scheduling domain algorithms or local storage adapters.
 
+### Standalone Self-Contained Architecture (Decoupled from FaceRecognition)
+
+**`timetable-mobile` is engineered as a 100% standalone product**, completely independent of the adjacent `FaceRecognition` codebase:
+- **No External Auth Microservice**: Timetable does not query, import, or depend on FaceRecognition's backend or auth service.
+- **Embedded Server API (`server.js`)**: Standalone production deployments run their own built-in Node.js authentication endpoints (`/api/auth/register`, `/api/auth/login`, `/api/auth/profile`, `/api/subscription/*`) using native Node.js crypto (PBKDF2 with 100,000 iterations and HMAC-SHA256 JWTs) and local persistence in `server-data/auth-db.json`.
+- **Embedded Client Engine (`src/auth/embeddedAuthStore.ts`)**: For mobile app (Expo) and offline browser operation, timetable-mobile runs a self-contained local auth engine so users can register, sign in, manage profiles, and unlock SaaS tiers completely offline without a server.
+- **Dedicated UI (`app/auth.tsx` & `src/screens/auth/AuthScreen.tsx`)**: Standalone Sign In and Account Registration interface with pre-seeded demo administrator credentials (`admin@irid.ai` / `Password123!`).
+
+
 ### Dual-Layer Security Model
 
 Every protected action is gated by two independent checks:
