@@ -1,0 +1,107 @@
+# Production Deployment & Operations Manual
+
+> **Scope**: Container orchestration, reverse proxy, TLS, and CI/CD  
+> **Status**: Approved for Production Deployment  
+> **Author**: Senior DevOps & Infrastructure Engineer
+
+---
+
+## 1. Architecture Overview
+
+```
+                      Internet (HTTPS: 443)
+                                │
+                                ▼
+         ┌──────────────────────────────────────────────┐
+         │             Nginx Reverse Proxy              │
+         │  - TLS Termination (TLSv1.3 / HTTP/2)        │
+         │  - Rate Limiting Zones (Auth & General)      │
+         │  - Gzip Compression                          │
+         │  - OWASP Security Headers (CSP, HSTS)        │
+         └──────────────────────┬───────────────────────┘
+                                │ Internal Docker Network
+                                ▼
+         ┌──────────────────────────────────────────────┐
+         │       irid.ai Timetable Web Container        │
+         │  - Multi-stage Node 20 Alpine                │
+         │  - Unprivileged Non-Root User ('node')       │
+         │  - Port 3000 / Static SPA + Healthcheck     │
+         └──────────────────────────────────────────────┘
+```
+
+---
+
+## 2. Environment Configuration
+
+Copy `.env.example` to `.env` on your deployment server:
+
+```bash
+cp .env.example .env
+chmod 600 .env
+```
+
+### Essential Production Variables
+
+| Variable | Description | Example / Recommendation |
+|---|---|---|
+| `NODE_ENV` | Runtime mode | `production` |
+| `PORT` | Container internal listening port | `3000` |
+| `APP_BASE_URL` | Public canonical URL | `https://timetable.irid.ai` |
+| `APP_BASE_PATH` | SPA URL prefix | `/timetable` |
+| `AUTH_JWT_SECRET` | 256-bit symmetric secret | High entropy generated via `openssl rand -hex 64` |
+| `STRIPE_SECRET_KEY` | Stripe live secret key | `sk_live_...` |
+| `STRIPE_WEBHOOK_SECRET` | Stripe live webhook secret | `whsec_...` |
+| `CORS_ALLOWED_ORIGINS` | Permitted origins | `https://timetable.irid.ai` |
+
+---
+
+## 3. Docker Deployment
+
+### Step 1: Building the Container Image
+
+```bash
+docker build -t iridai/timetable:latest .
+```
+
+### Step 2: Running with Docker Compose
+
+Ensure TLS certificates (`fullchain.pem` and `privkey.pem`) are present in `./certs/`, then start:
+
+```bash
+docker-compose up -d
+```
+
+### Step 3: Checking Health & Status
+
+```bash
+docker ps
+docker-compose logs -f timetable-app
+```
+
+The container includes a native healthcheck:
+```bash
+wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/ || exit 1
+```
+
+---
+
+## 4. Reverse Proxy & Nginx TLS Hardening
+
+The provided `nginx.conf` sets up:
+1. **HTTP to HTTPS Redirection** on port 80.
+2. **Rate Limiting**:
+   - `auth_limit`: 5 requests/sec with burst of 10 for `/api/auth/`
+   - `general_limit`: 30 requests/sec with burst of 50 for general traffic
+3. **HTTP/2 & Modern TLS Ciphers**: Restricts to TLSv1.2 and TLSv1.3 with forward secrecy.
+4. **HSTS Preload**: Forces browser HTTPS caching for 2 years (`max-age=63072000`).
+
+---
+
+## 5. Security & Maintenance Checklist
+
+- [ ] Secrets never committed to Git (verified by hardened `.gitignore`).
+- [ ] Container runs as non-root user (`USER node`).
+- [ ] Docker image contains zero development dependencies.
+- [ ] Automated health checks active and reporting healthy.
+- [ ] Rate limits preventing brute-force login attempts.
+- [ ] Security audit log rotated with 20MB file caps.

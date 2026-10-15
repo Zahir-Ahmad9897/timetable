@@ -72,3 +72,40 @@ For structured academic setup, switch to the Manual workspace and choose **Impor
 ## Privacy and deployment
 
 All workspace and generated timetable data remains on the device or in the current browser profile unless the user chooses Export. GitHub Pages serves only the static application bundle; there is no application server, hosted database, analytics integration, or database cost. For team sync later, add an authenticated API rather than embedding credentials in the app.
+
+## Enterprise SaaS & Security Architecture
+
+The platform includes an enterprise SaaS and defense-in-depth security layer:
+
+- **Authentication & RBAC (`src/auth/`)**:
+  - JWT session lifecycle with proactive refresh (buffer-based rotation)
+  - Platform-adaptive secure storage (`expo-secure-store` on iOS/Android; ephemeral in-memory + `sessionStorage` on web; zero `localStorage` token storage)
+  - Role hierarchy: `viewer` < `editor` < `admin` < `super_admin` with granular permission checks
+  - Declarative route and component guards (`AuthGuard`, `usePermission`, `useRole`)
+
+- **SaaS Subscription & Stripe Billing (`src/subscription/`)**:
+  - Tiered plan architecture: **Free Starter** ($0), **Pro Department** ($20/mo or $192/yr), **Enterprise University** ($99/mo)
+  - Feature entitlements & quota enforcement (active workspaces, teacher/room quotas, daily solves, bulk workbook import, Excel matrix export)
+  - Hosted Stripe Checkout and customer portal integration
+  - Interactive pricing UI with annual/monthly savings toggle (`PricingScreen`, route `/pricing`)
+  - Paywall component (`SubscriptionGuard`)
+
+- **Data Leakage Prevention (DLP) & Security Loophole Audits (`src/security/`)**:
+  - AES-GCM 256-bit envelope encryption with PBKDF2 key derivation for data at rest (`secureStorage.ts`)
+  - Automated sensitive field scrubbing (passwords, tokens, credentials, PII) in logs and exports (`dataLeakagePrevention.ts`)
+  - Export quota verification and tamper-evident SHA-256 integrity checksums
+  - XSS escaping, null-byte filtering, and path traversal defense (`inputValidator.ts`)
+  - Sliding-window rate limiter with lockout protection against brute-force attacks (`rateLimiter.ts`)
+  - Tamper-evident structured security audit trail (`auditLogger.ts`)
+
+- **Production Containerization & Orchestration**:
+  - Hardened multi-stage `Dockerfile` running as unprivileged `node` user with healthcheck monitoring
+  - Production `docker-compose.yml` with memory/CPU resource caps and log rotation
+  - Hardened `nginx.conf` reverse proxy with TLS 1.3, HTTP/2, Gzip compression, rate limiting zones, and OWASP headers
+  - Full documentation suite in [`docs/`](file:///d:/FaceRecognition/timetable-mobile/docs/):
+    - [`docs/SECURITY.md`](file:///d:/FaceRecognition/timetable-mobile/docs/SECURITY.md) — Threat model, DLP & crypto specs
+    - [`docs/AUTHENTICATION.md`](file:///d:/FaceRecognition/timetable-mobile/docs/AUTHENTICATION.md) — JWT lifecycle & RBAC matrix
+    - [`docs/SUBSCRIPTION.md`](file:///d:/FaceRecognition/timetable-mobile/docs/SUBSCRIPTION.md) — SaaS monetization & quota guide
+    - [`docs/DEPLOYMENT.md`](file:///d:/FaceRecognition/timetable-mobile/docs/DEPLOYMENT.md) — Production operations & container deployment
+    - [`docs/API_CONTRACTS.md`](file:///d:/FaceRecognition/timetable-mobile/docs/API_CONTRACTS.md) — REST endpoints & webhook specs
+

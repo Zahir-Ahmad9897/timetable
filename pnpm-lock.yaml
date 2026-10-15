@@ -199,6 +199,9 @@ importers:
       expo-router:
         specifier: ~6.0.24
         version: 6.0.24(6bbf08113852b71fddd82e724f8ea06c)
+      expo-secure-store:
+        specifier: ^57.0.4
+        version: 57.0.4(expo@54.0.37)
       expo-sharing:
         specifier: ~14.0.8
         version: 14.0.8(expo@54.0.37)
@@ -2082,6 +2085,11 @@ packages:
         optional: true
       react-server-dom-webpack:
         optional: true
+
+  expo-secure-store@57.0.4:
+    resolution: {integrity: sha512-7zBA1RThURTXdP4w65kBzZNbcSsfArqVd+p+ETAnPRWXO8J296Qd0YaCVyRpJ0HSwlCnGdvOnqO+NgSreHsOhA==}
+    peerDependencies:
+      expo: '*'
 
   expo-server@1.0.7:
     resolution: {integrity: sha512-mcmyML3oXcqFUXUxtdtCL1O00ztNI2v76d+MdniXRUgHNxIcHZ05zo+DqBaOOT6LQnPk4vA4YHqQl7iGUfRb3g==}
@@ -5898,6 +5906,10 @@ snapshots:
       - '@types/react'
       - '@types/react-dom'
       - supports-color
+
+  expo-secure-store@57.0.4(expo@54.0.37):
+    dependencies:
+      expo: 54.0.37(@babel/core@7.29.7(supports-color@8.1.1))(@expo/metro-runtime@6.1.2)(expo-router@6.0.24)(react-native@0.81.5(@babel/core@7.29.7(supports-color@8.1.1))(@types/react@19.1.17)(react@19.1.0)(supports-color@8.1.1))(react@19.1.0)(supports-color@8.1.1)(typescript@5.9.3)
 
   expo-server@1.0.7: {}
 

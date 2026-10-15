@@ -1,16 +1,66 @@
+# ============================================================================
+# irid.ai Timetable — Docker build exclusions
+# Minimizes build context for faster, safer container images.
+# Last updated: 2026-10-15
+# ============================================================================
+
+# Dependencies (re-installed inside the container)
 node_modules
+.pnpm-store
+
+# Build output (created during container build)
 dist
-.expo
-.expo-export*
-.test-build
-.git
-_archive
+dist-check
+web-build
+build
 output
 tmp
 coverage
-security-reports
-ui design picture
+
+# Expo & React Native caches
+.expo
+.expo-export*
+.test-build
+
+# Version control & CI
+.git
+.github
+
+# Environment & secrets (injected at runtime, never baked into images)
 .env
 .env.*
+*.pem
+*.key
+*.p8
+*.p12
+*.crt
+*.secret
+**/secrets/
+**/private/
+credentials.json
+service-account*.json
+
+# Security & audit reports
+security-reports
+audit-results
+vulnerability-reports
+*.sarif
+
+# IDE, OS, and local references
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+_archive
 *.log
 *.patch
+*.swp
+*.swo
+
+# Visual references not part of the app
+ui design picture
+
+# Documentation & design files (not needed at runtime)
+docs
+*.md
+!README.md

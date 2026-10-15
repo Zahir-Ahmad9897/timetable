@@ -10,6 +10,9 @@ import { NotificationProvider } from '../src/state/NotificationProvider';
 import { PreferencesProvider, usePreferences } from '../src/state/PreferencesProvider';
 import { WorkspaceProvider, useWorkspace } from '../src/state/WorkspaceProvider';
 
+import { AuthProvider } from '../src/auth/AuthProvider';
+import { SubscriptionProvider } from '../src/subscription/SubscriptionProvider';
+
 function Navigator() {
   const { loading: preferencesLoading, colorScheme } = usePreferences();
   const { loading: workspaceLoading } = useWorkspace();
@@ -22,6 +25,7 @@ function Navigator() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="resource/[page]" />
       <Stack.Screen name="import-academic" />
+      <Stack.Screen name="pricing" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
       <Stack.Screen name="search" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
     </Stack>
     <GlobalToast />
@@ -29,5 +33,22 @@ function Navigator() {
 }
 
 export default function RootLayout() {
-  return <SafeAreaProvider><PreferencesProvider><NotificationProvider><WorkspaceProvider><AppErrorBoundary><Navigator /></AppErrorBoundary></WorkspaceProvider></NotificationProvider></PreferencesProvider></SafeAreaProvider>;
+  return (
+    <SafeAreaProvider>
+      <AuthProvider>
+        <SubscriptionProvider>
+          <PreferencesProvider>
+            <NotificationProvider>
+              <WorkspaceProvider>
+                <AppErrorBoundary>
+                  <Navigator />
+                </AppErrorBoundary>
+              </WorkspaceProvider>
+            </NotificationProvider>
+          </PreferencesProvider>
+        </SubscriptionProvider>
+      </AuthProvider>
+    </SafeAreaProvider>
+  );
 }
+
