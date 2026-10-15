@@ -57,6 +57,10 @@ User Action Triggered
 - **Access Token**: Short-lived JWT (15-minute validity). Passed in the `Authorization: Bearer <token>` header. Contains user claims, role, and tier.
 - **Refresh Token**: Long-lived opaque token (30-day validity). Used exclusively to mint fresh access tokens.
 - **Proactive Refresh Buffer**: Tokens are automatically refreshed **2 minutes prior to expiration** via background timers to ensure zero session disruption for active users.
+- **Server session record**: Only a SHA-256 digest of each refresh token is persisted. Refresh use rotates the token and retires the previous session.
+- **Replay response**: Reuse of a rotated refresh token revokes every active session in that token family.
+- **Logout**: The access-token session identifier is revoked server-side before local credentials are cleared.
+- **JWT configuration**: `AUTH_JWT_SECRET` is mandatory and must contain at least 32 bytes. There is no built-in fallback secret.
 
 ### Platform Storage Strategy
 - **Native iOS/Android**: Tokens are encrypted in device hardware keychains via `expo-secure-store`.

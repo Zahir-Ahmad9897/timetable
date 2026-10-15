@@ -15,13 +15,14 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { BillingError, createStripeBilling } = require('./server/stripeBilling');
+const { TokenError, createTokenService } = require('./server/authTokens');
 
 const PORT = Number(process.env.PORT) || 3000;
 const DIST = path.resolve(__dirname, 'dist');
 const BASE_PATH = '/timetable';
-const JWT_SECRET = process.env.AUTH_JWT_SECRET || 'iridai_timetable_embedded_jwt_secret_2026';
 const DB_FILE = path.resolve(__dirname, 'server-data', 'auth-db.json');
 const billing = createStripeBilling({ basePath: BASE_PATH });
+const tokenService = createTokenService();
 
 // Ensure database directory exists
 const DB_DIR = path.dirname(DB_FILE);
@@ -41,6 +42,7 @@ function loadDb() {
       db.subscriptions ||= [];
       db.pendingCheckouts ||= [];
       db.processedStripeEvents ||= [];
+      db.refreshSessions ||= [];
       // Known development credentials shipped in an earlier build must never
       // remain usable after an upgrade.
       db.users = db.users.filter((user) => user.id !== 'usr_demo_admin');
@@ -56,6 +58,7 @@ function loadDb() {
     subscriptions: [],
     pendingCheckouts: [],
     processedStripeEvents: [],
+    refreshSessions: [],
   };
 
   fs.writeFileSync(DB_FILE, JSON.stringify(defaultDb, null, 2), 'utf-8');
@@ -70,58 +73,19 @@ function saveDb(data) {
 // JWT Token Helpers
 // -----------------------------------------------------------------------------
 
-function generateJwt(user, expiresInMinutes = 60) {
-  const header = { alg: 'HS256', typ: 'JWT' };
-  const exp = Math.floor(Date.now() / 1000) + expiresInMinutes * 60;
-  const payload = {
-    sub: user.id,
-    email: user.email,
-    role: user.role,
-    tier: user.subscriptionTier,
-    exp,
-  };
-
-  const b64Header = Buffer.from(JSON.stringify(header)).toString('base64url');
-  const b64Payload = Buffer.from(JSON.stringify(payload)).toString('base64url');
-  const signature = crypto
-    .createHmac('sha256', JWT_SECRET)
-    .update(`${b64Header}.${b64Payload}`)
-    .digest('base64url');
-
-  return `${b64Header}.${b64Payload}.${signature}`;
-}
-
-function verifyJwt(token) {
-  if (!token) return null;
-  const parts = token.split('.');
-  if (parts.length !== 3) return null;
-
-  const [header, payload, signature] = parts;
-  const expectedSig = crypto
-    .createHmac('sha256', JWT_SECRET)
-    .update(`${header}.${payload}`)
-    .digest('base64url');
-
-  if (signature !== expectedSig) return null;
-
-  try {
-    const data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf-8'));
-    if (data.exp && data.exp < Math.floor(Date.now() / 1000)) {
-      return null; // Expired
-    }
-    return data;
-  } catch {
-    return null;
-  }
-}
-
-function getAuthUser(req, db) {
+function getAuthContext(req, db) {
   const authHeader = req.headers['authorization'];
   if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
   const token = authHeader.slice(7).trim();
-  const claims = verifyJwt(token);
+  const claims = tokenService.verify(token);
   if (!claims || !claims.sub) return null;
-  return db.users.find((u) => u.id === claims.sub) || null;
+  const user = db.users.find((u) => u.id === claims.sub && !u.isLocked);
+  const session = db.refreshSessions.find((item) => item.id === claims.sid && !item.revokedAt);
+  return user && session ? { user, claims, session } : null;
+}
+
+function getAuthUser(req, db) {
+  return getAuthContext(req, db)?.user || null;
 }
 
 // -----------------------------------------------------------------------------
@@ -234,10 +198,8 @@ async function handleApiRequest(req, res, url) {
       };
 
       db.users.push(newUser);
+      const { tokens } = tokenService.issue(newUser, db.refreshSessions);
       saveDb(db);
-
-      const accessToken = generateJwt(newUser, 60);
-      const refreshToken = 'rt_' + crypto.randomBytes(24).toString('hex');
 
       return sendJson(201, {
         user: {
@@ -251,12 +213,7 @@ async function handleApiRequest(req, res, url) {
           createdAt: newUser.createdAt,
           isLocked: newUser.isLocked,
         },
-        tokens: {
-          accessToken,
-          refreshToken,
-          expiresIn: 3600,
-          tokenType: 'Bearer',
-        },
+        tokens,
       });
     } catch (err) {
       return sendJson(400, { message: err.message });
@@ -283,10 +240,8 @@ async function handleApiRequest(req, res, url) {
       }
 
       user.lastLoginAt = new Date().toISOString();
+      const { tokens } = tokenService.issue(user, db.refreshSessions);
       saveDb(db);
-
-      const accessToken = generateJwt(user, 60);
-      const refreshToken = 'rt_' + crypto.randomBytes(24).toString('hex');
 
       return sendJson(200, {
         user: {
@@ -301,12 +256,7 @@ async function handleApiRequest(req, res, url) {
           lastLoginAt: user.lastLoginAt,
           isLocked: user.isLocked,
         },
-        tokens: {
-          accessToken,
-          refreshToken,
-          expiresIn: 3600,
-          tokenType: 'Bearer',
-        },
+        tokens,
       });
     } catch (err) {
       return sendJson(400, { message: err.message });
@@ -315,7 +265,29 @@ async function handleApiRequest(req, res, url) {
 
   // POST /api/auth/logout
   if (pathname === '/api/auth/logout' && method === 'POST') {
-    return sendJson(200, { message: 'Logged out successfully.' });
+    const context = getAuthContext(req, db);
+    if (context) {
+      tokenService.revokeSession(context.claims.sid, db.refreshSessions);
+      saveDb(db);
+    }
+    return sendJson(204, {});
+  }
+
+  // POST /api/auth/refresh
+  if (pathname === '/api/auth/refresh' && method === 'POST') {
+    try {
+      const { refreshToken } = await readJsonBody(req);
+      if (!refreshToken) return sendJson(400, { code: 'REFRESH_TOKEN_REQUIRED', message: 'Refresh token is required.' });
+      const tokens = tokenService.rotate(refreshToken, db.users, db.refreshSessions);
+      saveDb(db);
+      return sendJson(200, { tokens });
+    } catch (error) {
+      if (error instanceof TokenError) {
+        saveDb(db);
+        return sendJson(401, { code: error.code, message: error.message });
+      }
+      throw error;
+    }
   }
 
   // GET /api/auth/profile
