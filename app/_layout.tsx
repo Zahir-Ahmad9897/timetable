@@ -21,6 +21,7 @@ function Navigator() {
       <Stack.Screen name="welcome" options={{ animation: 'fade' }} />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="resource/[page]" />
+      <Stack.Screen name="import-academic" />
       <Stack.Screen name="search" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
     </Stack>
     <GlobalToast />

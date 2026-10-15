@@ -17,13 +17,13 @@ The organization import did not contain live enrollment totals. The bundled snap
 
 ```powershell
 cd timetable-mobile
-npm install
-npm start
+pnpm install
+pnpm start
 ```
 
-Use Expo Go or an Android/iOS simulator. Run `npm run check` for type and domain tests.
+Use Expo Go or an Android/iOS simulator. Run `pnpm run check` for type and domain tests.
 
-For a physical phone that cannot reach the computer over LAN, use `npm run start:tunnel`, keep the terminal open, and scan the newly generated QR code. Use `npm run start:tunnel:clear` only when the Metro cache itself is stale. If ngrok is unstable and both devices share the same private Wi-Fi, use `npm run start:lan` to avoid the external tunnel. For a slower phone or first-bundle timeout, use `npm run start:mobile`; it serves a smaller minified production-mode bundle over LAN. The phone and computer must still be on the same non-isolated network.
+For a physical phone that cannot reach the computer over LAN, use `pnpm run start:tunnel`, keep the terminal open, and scan the newly generated QR code. Use `pnpm run start:tunnel:clear` only when the Metro cache itself is stale. If ngrok is unstable and both devices share the same private Wi-Fi, use `pnpm run start:lan` to avoid the external tunnel. For a slower phone or first-bundle timeout, use `pnpm run start:mobile`; it serves a smaller minified production-mode bundle over LAN. The phone and computer must still be on the same non-isolated network.
 
 The bundled UET Mardan snapshot is resource-only: it contains scheduling inputs and no generated timetable. The current data revision performs a one-time removal of older locally saved drafts and arrangement history while preserving resource edits. After that migration, new results are created only when the user presses Generate.
 
@@ -52,7 +52,7 @@ The repository's Python OR-Tools CP-SAT service remains preferable for very larg
 Create the production website locally with:
 
 ```powershell
-npm run build:web
+pnpm run build:web
 ```
 
 The static output is written to `dist/`. The configured base path is `/timetable`, matching this repository's GitHub Pages URL:
@@ -63,9 +63,11 @@ https://zahir-ahmad9897.github.io/timetable/
 
 The workflow in `.github/workflows/deploy-pages.yml` verifies and deploys the site on every push to `main`. For the first deployment, open **Settings -> Pages** in the GitHub repository and select **GitHub Actions** as the source if it is not already enabled.
 
-For Railway or another container host, the included multi-stage `Dockerfile` builds the static export and runs the dependency-free `server.js`. Set the service root directory to `timetable-mobile`; the server honors Railway's `PORT` and serves both `/timetable` deep links and static assets. Run the same server locally after building with `npm run serve`.
+For Railway or another container host, the included multi-stage `Dockerfile` builds the static export and runs the dependency-free `server.js`. Set the service root directory to `timetable-mobile`; the server honors Railway's `PORT` and serves both `/timetable` deep links and static assets. Run the same server locally after building with `pnpm run serve`.
 
 The web build stores organization and manual workspaces separately in browser `localStorage`. JSON backups download directly and color timetables open in browser print preview for PDF saving; importing uses the browser file picker. Browser data is specific to the current browser profile and site origin, so export a JSON backup before clearing site data or changing deployment domains.
+
+For structured academic setup, switch to the Manual workspace and choose **Import Excel**. Download the versioned template, complete its required sheets, select the `.xlsx` file, correct any sheet/row/field errors in the staged review, and confirm replacement. The import is parsed locally, creates a recovery snapshot, never changes the bundled organization workspace, and invalidates any prior Manual timetable draft.
 
 ## Privacy and deployment
 

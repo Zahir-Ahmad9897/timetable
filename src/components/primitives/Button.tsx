@@ -1,7 +1,7 @@
 import React from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, type } from '../../theme';
+import { colors, radius } from '../../theme';
 import * as Haptics from 'expo-haptics';
 import { usePreferences } from '../../state/PreferencesProvider';
 

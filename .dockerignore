@@ -1,8 +1,16 @@
 node_modules
 dist
 .expo
-.expo-export-final
+.expo-export*
 .test-build
 .git
-npm-debug.log*
-
+_archive
+output
+tmp
+coverage
+security-reports
+ui design picture
+.env
+.env.*
+*.log
+*.patch
