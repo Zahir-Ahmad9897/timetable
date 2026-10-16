@@ -11,10 +11,12 @@ import { confirmDestructive } from '../platform/confirm';
 import { Banner, Button, Card, PageIntro, StatusPill } from '../components/ui';
 import { ImportIssueCard } from '../components/import/ImportIssueCard';
 import { colors, radius, space, type } from '../theme';
+import { useAuth } from '../auth';
 
 export default function AcademicImportScreen() {
   const router = useRouter();
   const { dataSource, reload, switchDataSource } = useWorkspace();
+  const { user } = useAuth();
   const { notify } = useNotifications();
   const [draft, setDraft] = useState<AcademicImportDraft | null>(null);
   const [busy, setBusy] = useState<'template' | 'select' | 'import' | null>(null);
@@ -28,7 +30,8 @@ export default function AcademicImportScreen() {
       void (async () => {
         setBusy('import');
         try {
-          await commitImportedManualWorkspace(draft.workspace!);
+          if (!user) throw new Error('Sign in before importing a workspace.');
+          await commitImportedManualWorkspace(draft.workspace!, user.id);
           if (dataSource === 'manual') await reload(); else await switchDataSource('manual');
           notify('Workbook imported. Manual records are ready to edit.', 'success');
           router.replace('/workspace');

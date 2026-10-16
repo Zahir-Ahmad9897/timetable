@@ -19,6 +19,7 @@
     "serve": "node --env-file-if-exists=.env server.js",
     "typecheck": "tsc --noEmit",
     "test:server": "node --test server/__tests__/*.test.js",
+    "audit:security": "pnpm audit --prod --audit-level critical",
     "test": "tsc -p tsconfig.tests.json && node --test .test-build/src/domain/__tests__/*.test.js .test-build/src/auth/__tests__/*.test.js .test-build/src/security/__tests__/*.test.js .test-build/src/subscription/__tests__/*.test.js && pnpm run test:server",
     "check": "pnpm run typecheck && pnpm test",
     "start:mobile": "expo start --go --lan --no-dev --minify"
@@ -39,6 +40,7 @@
     "expo-sharing": "~14.0.8",
     "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.9",
+    "jsonwebtoken": "^9.0.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
@@ -55,6 +57,7 @@
     "@expo/ngrok": "^4.1.0",
     "@types/node": "^24.0.0",
     "@types/react": "~19.1.10",
+    "postcss": "8.5.18",
     "typescript": "~5.9.2"
   },
   "packageManager": "pnpm@12.11.2"

@@ -17,6 +17,9 @@ services:
       - APP_BASE_URL=${APP_BASE_URL:-https://timetable.irid.ai}
       - APP_BASE_PATH=${APP_BASE_PATH:-/timetable}
       - AUTH_JWT_SECRET=${AUTH_JWT_SECRET}
+      - AUTH_DB_FILE=/app/server-data/auth.sqlite
+      - UET_MARDAN_EMAIL=${UET_MARDAN_EMAIL:-uetmardan@gmail.com}
+      - UET_MARDAN_PASSWORD=${UET_MARDAN_PASSWORD}
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
       - STRIPE_PRO_MONTHLY_PRICE_ID=${STRIPE_PRO_MONTHLY_PRICE_ID}

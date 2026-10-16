@@ -188,6 +188,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'UPDATE_USER', user: updated });
   }, []);
 
+  const enrollOrganization = useCallback(async (organizationName: string) => {
+    const updated = await authService.enrollOrganization(organizationName);
+    dispatch({ type: 'SET_AUTHENTICATED', user: updated });
+  }, []);
+
   // ---- Context value -------------------------------------------------------
 
   const value = useMemo<AuthContextValue>(() => ({
@@ -202,7 +207,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     requestPasswordReset,
     changePassword,
     updateProfile,
-  }), [state, login, register, logout, refreshSession, requestPasswordReset, changePassword, updateProfile]);
+    enrollOrganization,
+  }), [state, login, register, logout, refreshSession, requestPasswordReset, changePassword, updateProfile, enrollOrganization]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

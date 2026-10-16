@@ -27,6 +27,7 @@ function Navigator() {
       <Stack.Screen name="import-academic" />
       <Stack.Screen name="pricing" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
       <Stack.Screen name="auth" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+      <Stack.Screen name="enroll" options={{ animation: 'slide_from_right', gestureEnabled: false }} />
       <Stack.Screen name="search" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
     </Stack>
     <GlobalToast />
@@ -52,4 +53,3 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
-

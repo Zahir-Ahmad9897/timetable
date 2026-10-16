@@ -1,4 +1,5 @@
 const crypto = require('node:crypto');
+const jwt = require('jsonwebtoken');
 
 class TokenError extends Error {
   constructor(message, code = 'INVALID_SESSION') {
@@ -14,7 +15,12 @@ function intSetting(value, fallback) {
 }
 
 function createTokenService(options = {}) {
-  const secret = options.secret || process.env.AUTH_JWT_SECRET;
+  const explicitSecret = Object.prototype.hasOwnProperty.call(options, 'secret');
+  let secret = explicitSecret ? options.secret : process.env.AUTH_JWT_SECRET;
+  if (!secret && !explicitSecret && process.env.NODE_ENV !== 'production' && options.allowDevelopmentSecret !== false) {
+    secret = crypto.randomBytes(48).toString('base64url');
+    if (!options.secret) console.warn('[auth] AUTH_JWT_SECRET is missing; using an ephemeral development secret. Sessions reset at restart.');
+  }
   if (!secret || Buffer.byteLength(secret, 'utf8') < 32) {
     throw new Error('AUTH_JWT_SECRET is required and must contain at least 32 bytes.');
   }
@@ -28,38 +34,27 @@ function createTokenService(options = {}) {
 
   function sign(user, sessionId) {
     const issuedAt = now();
-    const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
-    const payload = Buffer.from(JSON.stringify({
+    const payload = {
       sub: user.id,
       email: user.email,
       role: user.role,
       tier: user.subscriptionTier,
       sid: sessionId,
-      jti: randomBytes(16).toString('hex'),
-      iss: issuer,
-      aud: audience,
       iat: issuedAt,
       exp: issuedAt + accessSeconds,
-    })).toString('base64url');
-    const signature = crypto.createHmac('sha256', secret).update(`${header}.${payload}`).digest('base64url');
-    return { token: `${header}.${payload}.${signature}`, expiresAt: issuedAt + accessSeconds };
+    };
+    const token = jwt.sign(payload, secret, {
+      algorithm: 'HS256', audience, issuer, jwtid: randomBytes(16).toString('hex'),
+    });
+    return { token, expiresAt: issuedAt + accessSeconds };
   }
 
   function verify(token) {
     try {
-      const parts = String(token || '').split('.');
-      if (parts.length !== 3) return null;
-      const [encodedHeader, encodedPayload, signature] = parts;
-      const header = JSON.parse(Buffer.from(encodedHeader, 'base64url').toString('utf8'));
-      if (header.alg !== 'HS256' || header.typ !== 'JWT') return null;
-      const expected = crypto.createHmac('sha256', secret)
-        .update(`${encodedHeader}.${encodedPayload}`).digest();
-      const actual = Buffer.from(signature, 'base64url');
-      if (actual.length !== expected.length || !crypto.timingSafeEqual(actual, expected)) return null;
-      const claims = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8'));
-      const current = now();
-      if (!claims.sub || !claims.sid || claims.iss !== issuer || claims.aud !== audience ||
-          !Number.isFinite(claims.exp) || claims.exp <= current) return null;
+      const claims = jwt.verify(String(token || ''), secret, {
+        algorithms: ['HS256'], audience, issuer, clockTimestamp: now(), complete: false,
+      });
+      if (typeof claims !== 'object' || !claims.sub || !claims.sid) return null;
       return claims;
     } catch {
       return null;

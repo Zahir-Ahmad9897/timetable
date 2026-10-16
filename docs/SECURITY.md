@@ -69,7 +69,7 @@ The DLP engine (`src/security/dataLeakagePrevention.ts`) acts as an automated bo
 
 ## 4. Cryptographic Storage & Key Management
 
-- **Web Platform**: Utilizes `window.crypto.subtle` for AES-GCM encryption with randomized 96-bit initialization vectors and 100,000 PBKDF2 iterations. Graceful fallback ensures backward-compatibility with legacy plaintext JSON files without data loss.
+- **Web Platform**: The tested `secureStorage.ts` utility can use `window.crypto.subtle` for AES-GCM protected values. Academic workspaces use account-scoped origin storage and are not described as encrypted at rest.
 - **Native Platform (iOS/Android)**: Hardware-backed storage via `expo-secure-store` (Keychain on iOS, Keystore on Android).
 - **Session Tokens**: Access tokens are kept strictly in-memory during web sessions and transient `sessionStorage` (never in `localStorage` where XSS could exfiltrate them).
 
@@ -80,7 +80,7 @@ The DLP engine (`src/security/dataLeakagePrevention.ts`) acts as an automated bo
 Production HTTP server (`server.js`) and reverse proxy (`nginx.conf`) enforce:
 
 ```http
-Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https: wss:; frame-ancestors 'none'; object-src 'none'; base-uri 'self';
+Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https: wss:; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self';
 Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
 X-Frame-Options: DENY
 X-Content-Type-Options: nosniff

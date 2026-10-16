@@ -29,7 +29,6 @@ export interface AppEnvironment {
 
   // -- Authentication -------------------------------------------------------
   readonly auth: {
-    readonly jwtSecret: string;
     readonly jwtIssuer: string;
     readonly jwtAudience: string;
     readonly accessTokenExpiryMinutes: number;
@@ -75,17 +74,6 @@ function env(name: string, fallback?: string): string {
   if (value !== undefined && value !== '') return value;
   if (fallback !== undefined) return fallback;
   return '';
-}
-
-function envRequired(name: string): string {
-  const value = env(name);
-  if (!value && env('NODE_ENV') === 'production') {
-    throw new Error(
-      `[env] Required environment variable "${name}" is missing. ` +
-      `Check .env.example for documentation.`
-    );
-  }
-  return value;
 }
 
 function envInt(name: string, fallback: number): number {
@@ -135,7 +123,6 @@ export function getConfig(): AppEnvironment {
     apiUrl: publicApiUrl,
 
     auth: Object.freeze({
-      jwtSecret: envRequired('AUTH_JWT_SECRET'),
       jwtIssuer: env('AUTH_JWT_ISSUER', 'iridai-timetable'),
       jwtAudience: env('AUTH_JWT_AUDIENCE', 'iridai-timetable-clients'),
       accessTokenExpiryMinutes: envInt('AUTH_ACCESS_TOKEN_EXPIRY_MINUTES', 15),

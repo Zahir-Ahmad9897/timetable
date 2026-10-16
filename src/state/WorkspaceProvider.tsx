@@ -2,12 +2,14 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { emptyWorkspace, sampleWorkspace } from '../domain/defaults';
 import { uetMardanWorkspace } from '../data/uetMardan';
 import { DataSource, Workspace } from '../domain/types';
-import { exportWorkspace, importWorkspace, loadDataSource, loadWorkspace, saveDataSource, saveWorkspace } from '../storage/workspaceStorage';
+import { exportWorkspace, importWorkspace, loadWorkspace, saveWorkspace } from '../storage/workspaceStorage';
 import { confirmDestructive } from '../platform/confirm';
 import { useNotifications } from './NotificationProvider';
+import { useAuth } from '../auth';
 
 export interface WorkspaceState {
   workspace: Workspace;
+  savedWorkspace: Workspace;
   dataSource: DataSource;
   loading: boolean;
   saving: boolean;
@@ -30,8 +32,12 @@ const Context = createContext<WorkspaceState | null>(null);
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const { notify } = useNotifications();
-  const [workspace, setWorkspace] = useState(uetMardanWorkspace);
-  const [dataSource, setDataSource] = useState<DataSource>('organization');
+  const { user, isLoading: authLoading } = useAuth();
+  const ownerKey = user?.id;
+  const assignedSource: DataSource = user?.organizationId === 'org_uet_mardan' ? 'organization' : 'manual';
+  const [workspace, setWorkspace] = useState(emptyWorkspace);
+  const [savedWorkspace, setSavedWorkspace] = useState(emptyWorkspace);
+  const [dataSource, setDataSource] = useState<DataSource>('manual');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -39,12 +45,21 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const previousRef = useRef<Workspace | null>(null);
 
   const hydrate = useCallback(async (showRefresh = false) => {
+    if (!ownerKey) {
+      setWorkspace(emptyWorkspace());
+      setSavedWorkspace(emptyWorkspace());
+      setDataSource('manual');
+      setLoading(false);
+      return;
+    }
     if (showRefresh) setRefreshing(true);
     try {
-      const source = await loadDataSource();
-      const loaded = await loadWorkspace(source, source === 'organization' ? uetMardanWorkspace : emptyWorkspace);
+      const source = assignedSource;
+      const fallback = source === 'organization' ? uetMardanWorkspace : () => ({ ...emptyWorkspace(), institutionName: user?.organizationName || 'My Institution' });
+      const loaded = await loadWorkspace(source, fallback, ownerKey);
       setDataSource(source);
       setWorkspace(loaded);
+      setSavedWorkspace(loaded);
       setDirty(false);
       previousRef.current = null;
       if (showRefresh) notify('Local workspace reloaded.', 'success');
@@ -54,9 +69,9 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [notify]);
+  }, [assignedSource, notify, ownerKey, user?.organizationName]);
 
-  useEffect(() => { void hydrate(); }, [hydrate]);
+  useEffect(() => { if (!authLoading) void hydrate(); }, [authLoading, hydrate]);
 
   const undo = useCallback(() => {
     const previous = previousRef.current;
@@ -77,10 +92,15 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   }, [dataSource, notify, undo]);
 
   const save = useCallback(async (value = workspace) => {
+    if (!ownerKey) {
+      notify('Sign in before saving a workspace.', 'error');
+      return;
+    }
     setSaving(true);
     try {
-      const saved = await saveWorkspace(value, dataSource);
+      const saved = await saveWorkspace(value, dataSource, ownerKey);
       setWorkspace(saved);
+      setSavedWorkspace(saved);
       setDirty(false);
       previousRef.current = null;
       notify(`${dataSource === 'organization' ? 'Organization' : 'Manual'} workspace saved on this device.`, 'success');
@@ -89,7 +109,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setSaving(false);
     }
-  }, [workspace, dataSource, notify]);
+  }, [workspace, dataSource, notify, ownerKey]);
 
   const importJson = useCallback(async () => {
     try {
@@ -115,19 +135,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
   const switchDataSource = useCallback(async (source: DataSource) => {
     if (source === dataSource) return;
-    try {
-      if (dirty) await saveWorkspace(workspace, dataSource);
-      const next = await loadWorkspace(source, source === 'organization' ? uetMardanWorkspace : emptyWorkspace);
-      await saveDataSource(source);
-      setDataSource(source);
-      setWorkspace(next);
-      setDirty(false);
-      previousRef.current = null;
-      notify(`${source === 'organization' ? 'UET Mardan organization' : 'Manual'} data selected.`, 'success');
-    } catch (cause) {
-      notify(cause instanceof Error ? cause.message : 'Data source could not be changed.', 'error');
-    }
-  }, [dataSource, dirty, workspace, notify]);
+    notify('This data source belongs to a different organization and cannot be selected.', 'error');
+  }, [dataSource, notify]);
 
   const restoreSource = useCallback(() => confirmDestructive(
     dataSource === 'organization' ? 'Restore bundled UET Mardan data?' : 'Clear manual data?',
@@ -148,7 +157,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     notify('Sample workspace loaded.', 'success', 'Undo', undo);
   }, [workspace, dataSource, notify, undo]);
 
-  const value = useMemo<WorkspaceState>(() => ({ workspace, dataSource, loading, saving, refreshing, dirty, canUndo: Boolean(previousRef.current), update, undo, save, reload: () => hydrate(true), importJson, exportJson, switchDataSource, restoreSource, loadSample, reset: restoreSource }), [workspace, dataSource, loading, saving, refreshing, dirty, update, undo, save, hydrate, importJson, exportJson, switchDataSource, restoreSource, loadSample]);
+  const value = useMemo<WorkspaceState>(() => ({ workspace, savedWorkspace, dataSource, loading, saving, refreshing, dirty, canUndo: Boolean(previousRef.current), update, undo, save, reload: () => hydrate(true), importJson, exportJson, switchDataSource, restoreSource, loadSample, reset: restoreSource }), [workspace, savedWorkspace, dataSource, loading, saving, refreshing, dirty, update, undo, save, hydrate, importJson, exportJson, switchDataSource, restoreSource, loadSample]);
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 
@@ -162,4 +171,3 @@ export function useDataSource() {
   const { dataSource, switchDataSource } = useWorkspace();
   return { dataSource, switchDataSource };
 }
-

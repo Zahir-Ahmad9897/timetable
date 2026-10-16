@@ -296,6 +296,15 @@ export async function updateProfile(
   });
 }
 
+/** Creates the authenticated account's one and only organization membership. */
+export async function enrollOrganization(organizationName: string): Promise<User> {
+  return request<User>({
+    method: 'POST',
+    path: '/api/auth/enroll',
+    body: { organizationName },
+  });
+}
+
 /**
  * Refreshes the access token using the stored refresh token.
  *

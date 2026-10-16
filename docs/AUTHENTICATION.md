@@ -60,7 +60,7 @@ User Action Triggered
 - **Server session record**: Only a SHA-256 digest of each refresh token is persisted. Refresh use rotates the token and retires the previous session.
 - **Replay response**: Reuse of a rotated refresh token revokes every active session in that token family.
 - **Logout**: The access-token session identifier is revoked server-side before local credentials are cleared.
-- **JWT configuration**: `AUTH_JWT_SECRET` is mandatory and must contain at least 32 bytes. There is no built-in fallback secret.
+- **JWT configuration**: production requires `AUTH_JWT_SECRET` with at least 32 bytes. Local development may use a process-random ephemeral secret, which intentionally invalidates sessions at restart.
 
 ### Platform Storage Strategy
 - **Native iOS/Android**: Tokens are encrypted in device hardware keychains via `expo-secure-store`.

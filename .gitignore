@@ -1,6 +1,6 @@
 # ============================================================================
 # irid.ai Timetable — Production .gitignore
-# Last updated: 2026-10-15
+# Last updated: 2026-10-16
 #
 # Organized by category for SaaS-grade secret and artifact exclusion.
 # ============================================================================
@@ -48,6 +48,16 @@ firebase*.json
 **/secrets/
 **/private/
 server-data/
+*.sqlite
+*.sqlite3
+*.sqlite-shm
+*.sqlite-wal
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.backup
+*.recovery
 *.secret
 *.token
 

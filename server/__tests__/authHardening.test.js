@@ -34,6 +34,37 @@ test('authentication hardening policy', async (t) => {
     assert.doesNotMatch(authService, /graceful offline no-op/i);
   });
 
+  await t.test('uses transactional persistence, asynchronous password hashing, and a standard JWT library', () => {
+    const server = read('server.js');
+    const tokens = read('server/authTokens.js');
+    assert.doesNotMatch(server, /readFileSync|writeFileSync|pbkdf2Sync/);
+    assert.match(server, /createDatabase\(\)/);
+    assert.match(server, /promisify\(crypto\.pbkdf2\)/);
+    assert.match(tokens, /require\('jsonwebtoken'\)/);
+  });
+
+  await t.test('does not permit inline scripts or styles in the web CSP', () => {
+    const server = read('server.js');
+    const csp = server.match(/'Content-Security-Policy':\s*"([^"]+)"/)?.[1] || '';
+    assert.doesNotMatch(csp, /unsafe-inline/);
+  });
+
+  await t.test('scopes local workspace storage by authenticated owner', () => {
+    for (const storageFile of ['src/storage/workspaceStorage.ts', 'src/storage/workspaceStorage.web.ts']) {
+      const source = read(storageFile);
+      assert.match(source, /ownerKey/);
+      assert.match(source, /safeOwner/);
+    }
+    assert.match(read('server.js'), /ALREADY_ENROLLED/);
+  });
+
+  await t.test('keeps server secrets out of the client bundle and throttles login failures', () => {
+    assert.doesNotMatch(read('src/config/environment.ts'), /AUTH_JWT_SECRET/);
+    const server = read('server.js');
+    assert.match(server, /loginRateState/);
+    assert.match(server, /Too many failed sign-in attempts/);
+  });
+
   await t.test('guards every route that exposes workspace data or mutations', () => {
     const guardedRoutes = [
       'app/(tabs)/_layout.tsx',

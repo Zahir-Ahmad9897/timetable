@@ -1,15 +1,15 @@
 # irid.ai Timetable Mobile
 
-Standalone Expo/React Native timetable planning app. It does not import from, write to, or change the dependencies of the repository's existing frontend, auth service, backend, or Python timetable package.
+Expo/React Native timetable planning app with online account authentication and local-first academic data.
 
 ## Data model
 
-The app is local-first. It keeps two independent versioned JSON workspaces in the native app's private document directory or in origin-scoped browser storage on the web:
+The app is local-first. Every authenticated account receives its own storage namespace in the native app's private document directory or origin-scoped browser storage. The server-provisioned UET account receives the bundled organization snapshot; every other account receives a separate manual workspace.
 
 - **UET Mardan org data** — a bundled Fall 2026 snapshot mapped from the repository's executable organization import, including departments, semesters, sections, courses, teachers, section assignments, rooms/labs, and explicit room-sharing grants.
 - **Manual data** — an empty, user-managed workspace (or an imported JSON backup).
 
-Switching modes saves pending changes and does not overwrite the other workspace. Users can explicitly export or import the active JSON file. No hosted database, account, secret, or biometric data is required.
+Users cannot switch into another organization's workspace. Registration is followed by one-time organization enrollment, then import or manual setup. Departments, semesters, sections, and later registers unlock only after valid records are explicitly saved. Academic and generated timetable data stays on the device; the server database is limited to accounts, refresh sessions, organization ownership, and required billing state.
 
 The organization import did not contain live enrollment totals. The bundled snapshot therefore starts each section at 30 students, matching the source lab-capacity default, and flags that value for review. This is a scheduling assumption, not a claim about current enrollment.
 
@@ -22,6 +22,8 @@ cd timetable-mobile
 pnpm install
 pnpm start
 ```
+
+Copy `.env.example` to `.env`, set a strong `AUTH_JWT_SECRET`, and set `UET_MARDAN_PASSWORD` in the local/deployment secret store to provision the reserved `uetmardan@gmail.com` account. Set `EXPO_PUBLIC_API_URL` to the reachable HTTPS auth server (or `http://localhost:3000` for local web development). Run `pnpm run build:web` followed by `pnpm run serve` for the combined web/API server; during Expo mobile development, keep the API server and Expo dev server running in separate terminals.
 
 Use Expo Go or an Android/iOS simulator. Run `pnpm run check` for type and domain tests.
 
@@ -65,19 +67,19 @@ https://zahir-ahmad9897.github.io/timetable/
 
 The workflow in `.github/workflows/deploy-pages.yml` verifies and deploys the site on every push to `main`. For the first deployment, open **Settings -> Pages** in the GitHub repository and select **GitHub Actions** as the source if it is not already enabled.
 
-For Railway or another container host, the included multi-stage `Dockerfile` builds the static export and runs the dependency-free `server.js`. Set the service root directory to `timetable-mobile`; the server honors Railway's `PORT` and serves both `/timetable` deep links and static assets. Run the same server locally after building with `pnpm run serve`.
+For Railway or another container host, the included multi-stage `Dockerfile` builds the static export and runs `server.js` with the pinned production dependencies. Set the service root directory to `timetable-mobile`; the server honors Railway's `PORT` and serves both `/timetable` deep links and static assets. Run the same server locally after building with `pnpm run serve`.
 
 The web build stores organization and manual workspaces separately in browser `localStorage`. JSON backups download directly and color timetables open in browser print preview for PDF saving; importing uses the browser file picker. Browser data is specific to the current browser profile and site origin, so export a JSON backup before clearing site data or changing deployment domains.
 
-For structured academic setup, switch to the Manual workspace and choose **Import Excel**. Download the versioned template, complete its required sheets, select the `.xlsx` file, correct any sheet/row/field errors in the staged review, and confirm replacement. The import is parsed locally, creates a recovery snapshot, never changes the bundled organization workspace, and invalidates any prior Manual timetable draft.
+For structured academic setup in a manual account, choose **Import Excel**. Download the versioned template, complete its required sheets, select the `.xlsx` file, correct any sheet/row/field errors in the staged review, and confirm replacement. The import is parsed locally, is saved atomically with a recovery backup, and invalidates any prior timetable draft.
 
 ## Privacy and deployment
 
-All workspace and generated timetable data remains on the device or in the current browser profile unless the user chooses Export. GitHub Pages serves only the static application bundle; there is no application server, hosted database, analytics integration, or database cost. For team sync later, add an authenticated API rather than embedding credentials in the app.
+All workspace and generated timetable data remains on the device or in the current browser profile unless the user chooses Export. Online builds require the authenticated API configured through `EXPO_PUBLIC_API_URL`; that API stores account, session, organization-ownership, and billing records, but never the academic workspace.
 
 ## Enterprise SaaS & Security Architecture
 
-The platform includes an enterprise SaaS and defense-in-depth security layer:
+The implemented runtime security boundaries are:
 
 - **Authentication & RBAC (`src/auth/`)**:
   - JWT session lifecycle with proactive refresh (buffer-based rotation)
@@ -93,7 +95,7 @@ The platform includes an enterprise SaaS and defense-in-depth security layer:
   - Paywall component (`SubscriptionGuard`)
 
 - **Data Leakage Prevention (DLP) & Security Loophole Audits (`src/security/`)**:
-  - AES-GCM 256-bit envelope encryption with PBKDF2 key derivation for data at rest (`secureStorage.ts`)
+  - Tested AES-GCM storage utilities (`secureStorage.ts`); workspace files rely on platform-private app storage and account-scoped filenames rather than claiming universal database encryption
   - Automated sensitive field scrubbing (passwords, tokens, credentials, PII) in logs and exports (`dataLeakagePrevention.ts`)
   - Export quota verification and tamper-evident SHA-256 integrity checksums
   - XSS escaping, null-byte filtering, and path traversal defense (`inputValidator.ts`)
@@ -104,9 +106,9 @@ The platform includes an enterprise SaaS and defense-in-depth security layer:
   - Hardened multi-stage `Dockerfile` running as unprivileged `node` user with healthcheck monitoring
   - Production `docker-compose.yml` with memory/CPU resource caps and log rotation
   - Hardened `nginx.conf` reverse proxy with TLS 1.3, HTTP/2, Gzip compression, rate limiting zones, and OWASP headers
-  - Full documentation suite in [`docs/`](file:///d:/FaceRecognition/timetable-mobile/docs/):
-    - [`docs/SECURITY.md`](file:///d:/FaceRecognition/timetable-mobile/docs/SECURITY.md) — Threat model, DLP & crypto specs
-    - [`docs/AUTHENTICATION.md`](file:///d:/FaceRecognition/timetable-mobile/docs/AUTHENTICATION.md) — JWT lifecycle & RBAC matrix
-    - [`docs/SUBSCRIPTION.md`](file:///d:/FaceRecognition/timetable-mobile/docs/SUBSCRIPTION.md) — SaaS monetization & quota guide
-    - [`docs/DEPLOYMENT.md`](file:///d:/FaceRecognition/timetable-mobile/docs/DEPLOYMENT.md) — Production operations & container deployment
-    - [`docs/API_CONTRACTS.md`](file:///d:/FaceRecognition/timetable-mobile/docs/API_CONTRACTS.md) — REST endpoints & webhook specs
+  - Full documentation suite in [`docs/`](docs/):
+    - [`docs/SECURITY.md`](docs/SECURITY.md) — Threat model, DLP & crypto specs
+    - [`docs/AUTHENTICATION.md`](docs/AUTHENTICATION.md) — JWT lifecycle & RBAC matrix
+    - [`docs/SUBSCRIPTION.md`](docs/SUBSCRIPTION.md) — SaaS monetization & quota guide
+    - [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — Production operations & container deployment
+    - [`docs/API_CONTRACTS.md`](docs/API_CONTRACTS.md) — REST endpoints & webhook specs

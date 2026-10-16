@@ -94,8 +94,8 @@ Forbidden states:
 
 - Goal: schedule from the existing UET Mardan catalog or from independently entered data.
 - Preconditions: bundled organization data is available in the installed app.
-- Behavior: keep separate local workspaces for UET Mardan organization data and manual data; open UET Mardan by default until the user explicitly chooses another source; save pending changes before switching; restore the bundled Fall 2026 organization snapshot without altering manual data; allow one or more departments to be selected for generation.
-- Failure: a failed source switch retains the current workspace and reports an error; no generation starts without a selected department.
+- Behavior: scope local workspaces by authenticated user; expose the bundled UET Mardan snapshot only to the provisioned UET tenant; create a private manual workspace for every other account; unlock department, semester, section, and later setup registers only after the preceding record is valid and saved.
+- Failure: attempts to enroll twice or select another organization's source are rejected; no generation starts without a selected department.
 - Authorization: local user; neither mode connects to or mutates the platform database.
 - Acceptance: the bundled snapshot maps six departments and passes workspace validation; explicit section-teacher mappings and room-sharing grants are preserved; a selected UET Mardan department generates a complete validated result; legacy single-workspace data remains available in manual mode.
 - Evidence: organization mapping and selected-generation tests, source-mode UI, and private per-mode storage implementation.

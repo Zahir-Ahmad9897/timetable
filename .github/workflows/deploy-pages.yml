@@ -41,7 +41,17 @@ jobs:
       - name: Verify source
         run: pnpm run check
 
+      - name: Audit production dependencies
+        run: pnpm run audit:security
+
+      - name: Verify hosted authentication API
+        env:
+          EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
+        run: test -n "$EXPO_PUBLIC_API_URL" && test "${EXPO_PUBLIC_API_URL#https://}" != "$EXPO_PUBLIC_API_URL"
+
       - name: Export production web app
+        env:
+          EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
         run: pnpm run build:web
 
       - name: Configure GitHub Pages

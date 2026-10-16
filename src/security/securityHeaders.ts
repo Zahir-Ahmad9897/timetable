@@ -17,15 +17,15 @@ import { SECURITY_HEADERS } from '../config/constants';
  * Builds standard Content Security Policy directives.
  */
 export function buildContentSecurityPolicy(isDev = false): string {
-  const scriptSources = ["'self'", "'unsafe-inline'"];
+  const scriptSources = ["'self'"];
   if (isDev) {
     scriptSources.push("'unsafe-eval'");
   }
 
   const directives = [
     "default-src 'self'",
-    `script-src ${scriptSources.join(' ')} https://cdn.jsdelivr.net`,
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    `script-src ${scriptSources.join(' ')}`,
+    "style-src 'self' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: blob: https:",
     "connect-src 'self' https: wss: http://localhost:* ws://localhost:*",

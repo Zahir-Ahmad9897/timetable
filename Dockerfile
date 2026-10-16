@@ -50,7 +50,7 @@ COPY --from=build --chown=node:node /app/server ./server
 COPY --from=build --chown=node:node /app/package.json ./package.json
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
 
-# Persist the embedded database and allow the non-root runtime user to update it.
+# Persist the transactional auth/billing database for the non-root runtime user.
 RUN mkdir -p /app/server-data && chown node:node /app/server-data
 VOLUME /app/server-data
 

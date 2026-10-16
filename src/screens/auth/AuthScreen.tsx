@@ -35,7 +35,6 @@ export function AuthScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [organizationName, setOrganizationName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -60,7 +59,6 @@ export function AuthScreen() {
           email,
           password,
           displayName,
-          organizationName: organizationName || undefined,
         });
       }
       router.back();
@@ -173,16 +171,6 @@ export function AuthScreen() {
                 />
               </View>
 
-              <View style={styles.fieldGroup}>
-                <Text style={styles.fieldLabel}>Department / Faculty (Optional)</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g. Computer Software Engineering"
-                  placeholderTextColor={colors.subtle}
-                  value={organizationName}
-                  onChangeText={setOrganizationName}
-                />
-              </View>
             </>
           )}
 

@@ -33,6 +33,8 @@ interface AuthGuardProps {
   deniedMessage?: string;
   /** If true, show a paywall prompt instead of redirecting */
   showPaywall?: boolean;
+  /** Redirect authenticated first-time users to organization enrollment. */
+  requireEnrollment?: boolean;
 }
 
 const TIER_HIERARCHY: Record<SubscriptionTier, number> = {
@@ -47,14 +49,17 @@ export function AuthGuard({
   minimumTier = 'free',
   deniedMessage = 'You do not have permission to access this feature.',
   showPaywall = false,
+  requireEnrollment = true,
 }: AuthGuardProps) {
   const { isAuthenticated, isLoading, user } = useAuth();
   const router = useRouter();
   React.useEffect(() => {
     if (!isLoading && (!isAuthenticated || !user)) {
       router.replace('/auth');
+    } else if (!isLoading && requireEnrollment && user && !user.organizationId) {
+      router.replace('/enroll' as never);
     }
-  }, [isAuthenticated, isLoading, router, user]);
+  }, [isAuthenticated, isLoading, requireEnrollment, router, user]);
 
   // ---- Loading state -------------------------------------------------------
   if (isLoading) {
@@ -73,6 +78,15 @@ export function AuthGuard({
       <View style={styles.center}>
         <ActivityIndicator size="large" color={colors.accent} />
         <Text style={styles.loadingText}>Redirecting to login…</Text>
+      </View>
+    );
+  }
+
+  if (requireEnrollment && !user.organizationId) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size={'large'} color={colors.accent} />
+        <Text style={styles.loadingText}>Opening organization enrollment…</Text>
       </View>
     );
   }

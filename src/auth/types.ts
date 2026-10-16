@@ -27,6 +27,8 @@ export interface User {
   readonly displayName: string;
   /** Organization name (optional, used for Enterprise tier branding) */
   readonly organizationName?: string;
+  /** Immutable server-issued organization identifier */
+  readonly organizationId?: string;
   /** User's role within the system */
   readonly role: UserRole;
   /** Current subscription tier */
@@ -173,4 +175,5 @@ export interface AuthContextValue {
   requestPasswordReset: (email: string) => Promise<void>;
   changePassword: (request: PasswordChangeRequest) => Promise<void>;
   updateProfile: (updates: Partial<Pick<User, 'displayName' | 'organizationName' | 'avatarUrl'>>) => Promise<void>;
+  enrollOrganization: (organizationName: string) => Promise<void>;
 }

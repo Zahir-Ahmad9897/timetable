@@ -6,16 +6,17 @@ import { DataSource, Workspace } from '../domain/types';
 import { sanitizeWorkspace } from '../domain/validation';
 import { migrateOrganizationWorkspace } from '../domain/organizationMigration';
 
-const workspaceUri = (source: DataSource) => { if (!FileSystem.documentDirectory) throw new Error('Private device storage is unavailable on this platform.'); return `${FileSystem.documentDirectory}iridai-timetable-${source}.json`; };
-const modeUri = () => { if (!FileSystem.documentDirectory) throw new Error('Private device storage is unavailable on this platform.'); return `${FileSystem.documentDirectory}iridai-timetable-mode.json`; };
+const safeOwner = (ownerKey: string) => ownerKey.replace(/[^a-zA-Z0-9_-]/g, '_');
+const workspaceUri = (source: DataSource, ownerKey: string) => { if (!FileSystem.documentDirectory) throw new Error('Private device storage is unavailable on this platform.'); return `${FileSystem.documentDirectory}iridai-timetable-${safeOwner(ownerKey)}-${source}.json`; };
+const modeUri = (ownerKey: string) => { if (!FileSystem.documentDirectory) throw new Error('Private device storage is unavailable on this platform.'); return `${FileSystem.documentDirectory}iridai-timetable-${safeOwner(ownerKey)}-mode.json`; };
 
-export async function loadWorkspace(source: DataSource, fallback = emptyWorkspace): Promise<Workspace> {
-  try { const target = workspaceUri(source); const backup = `${target}.backup`; const info = await FileSystem.getInfoAsync(target); const backupInfo = await FileSystem.getInfoAsync(backup); let stored = info.exists ? target : backupInfo.exists ? backup : null; if (!stored && source === 'manual' && FileSystem.documentDirectory) { const legacy = `${FileSystem.documentDirectory}iridai-timetable-workspace.json`; if ((await FileSystem.getInfoAsync(legacy)).exists) stored = legacy; } if (!stored) return fallback(); const workspace = sanitizeWorkspace(JSON.parse(await FileSystem.readAsStringAsync(stored))); if (source !== 'organization') return workspace; const migration = migrateOrganizationWorkspace(workspace, fallback()); return migration.migrated ? saveWorkspace(migration.workspace, source) : migration.workspace; }
+export async function loadWorkspace(source: DataSource, fallback = emptyWorkspace, ownerKey: string): Promise<Workspace> {
+  try { const target = workspaceUri(source, ownerKey); const backup = `${target}.backup`; const info = await FileSystem.getInfoAsync(target); const backupInfo = await FileSystem.getInfoAsync(backup); const stored = info.exists ? target : backupInfo.exists ? backup : null; if (!stored) return fallback(); const workspace = sanitizeWorkspace(JSON.parse(await FileSystem.readAsStringAsync(stored))); if (source !== 'organization') return workspace; const migration = migrateOrganizationWorkspace(workspace, fallback()); return migration.migrated ? saveWorkspace(migration.workspace, source, ownerKey) : migration.workspace; }
   catch (error) { if (error instanceof SyntaxError) throw new Error('The saved workspace JSON is damaged. Import a backup or reset the workspace.'); throw error; }
 }
 
-export async function saveWorkspace(workspace: Workspace, source: DataSource): Promise<Workspace> {
-  const saved = { ...workspace, updatedAt: new Date().toISOString() }; const target = workspaceUri(source); const temporary = `${target}.tmp`; const backup = `${target}.backup`;
+export async function saveWorkspace(workspace: Workspace, source: DataSource, ownerKey: string): Promise<Workspace> {
+  const saved = { ...workspace, updatedAt: new Date().toISOString() }; const target = workspaceUri(source, ownerKey); const temporary = `${target}.tmp`; const backup = `${target}.backup`;
   await FileSystem.writeAsStringAsync(temporary, JSON.stringify(saved, null, 2));
   const backupInfo = await FileSystem.getInfoAsync(backup); if (backupInfo.exists) await FileSystem.deleteAsync(backup, { idempotent: true });
   const existing = await FileSystem.getInfoAsync(target); if (existing.exists) await FileSystem.moveAsync({ from: target, to: backup });
@@ -33,7 +34,7 @@ export async function exportWorkspace(workspace: Workspace): Promise<void> {
   const source = workspace.sourceInfo?.kind || 'manual'; const uri = `${FileSystem.cacheDirectory}iridai-timetable-${source}-backup.json`; await FileSystem.writeAsStringAsync(uri, JSON.stringify(workspace, null, 2)); await Sharing.shareAsync(uri, { mimeType: 'application/json', dialogTitle: 'Export timetable workspace', UTI: 'public.json' });
 }
 
-export async function loadDataSource(): Promise<DataSource> {
-  try { const info = await FileSystem.getInfoAsync(modeUri()); if (!info.exists) return 'organization'; const value = JSON.parse(await FileSystem.readAsStringAsync(modeUri())); if (value?.userSelected !== true) return 'organization'; return value?.source === 'manual' ? 'manual' : 'organization'; } catch { return 'organization'; }
+export async function loadDataSource(ownerKey: string): Promise<DataSource> {
+  try { const info = await FileSystem.getInfoAsync(modeUri(ownerKey)); if (!info.exists) return 'manual'; const value = JSON.parse(await FileSystem.readAsStringAsync(modeUri(ownerKey))); return value?.source === 'organization' ? 'organization' : 'manual'; } catch { return 'manual'; }
 }
-export async function saveDataSource(source: DataSource): Promise<void> { await FileSystem.writeAsStringAsync(modeUri(), JSON.stringify({ source, userSelected: true })); }
+export async function saveDataSource(source: DataSource, ownerKey: string): Promise<void> { await FileSystem.writeAsStringAsync(modeUri(ownerKey), JSON.stringify({ source, userSelected: true })); }
