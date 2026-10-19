@@ -17,9 +17,10 @@ function intSetting(value, fallback) {
 function createTokenService(options = {}) {
   const explicitSecret = Object.prototype.hasOwnProperty.call(options, 'secret');
   let secret = explicitSecret ? options.secret : process.env.AUTH_JWT_SECRET;
-  if (!secret && !explicitSecret && process.env.NODE_ENV !== 'production' && options.allowDevelopmentSecret !== false) {
+  const isDevelopmentEnvironment = process.env.NODE_ENV === 'development';
+  if (!secret && !explicitSecret && isDevelopmentEnvironment && options.allowDevelopmentSecret !== false) {
     secret = crypto.randomBytes(48).toString('base64url');
-    if (!options.secret) console.warn('[auth] AUTH_JWT_SECRET is missing; using an ephemeral development secret. Sessions reset at restart.');
+    console.warn('[auth] WARNING: AUTH_JWT_SECRET is missing; using an ephemeral development secret because NODE_ENV=development. All sessions reset upon server restart.');
   }
   if (!secret || Buffer.byteLength(secret, 'utf8') < 32) {
     throw new Error('AUTH_JWT_SECRET is required and must contain at least 32 bytes.');

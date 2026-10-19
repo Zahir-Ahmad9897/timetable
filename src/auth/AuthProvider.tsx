@@ -22,7 +22,6 @@ import {
   AuthState,
   AuthStatus,
   LoginRequest,
-  PasswordChangeRequest,
   RegisterRequest,
   User,
 } from './types';
@@ -35,8 +34,7 @@ type AuthAction =
   | { type: 'SET_STATUS'; status: AuthStatus }
   | { type: 'SET_AUTHENTICATED'; user: User }
   | { type: 'SET_UNAUTHENTICATED' }
-  | { type: 'SET_ERROR'; error: string }
-  | { type: 'UPDATE_USER'; user: Partial<User> };
+  | { type: 'SET_ERROR'; error: string };
 
 const initialState: AuthState = {
   status: 'idle',
@@ -55,10 +53,6 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
       return { ...state, status: 'unauthenticated', user: null, tokens: null, error: null };
     case 'SET_ERROR':
       return { ...state, status: 'error', error: action.error };
-    case 'UPDATE_USER':
-      return state.user
-        ? { ...state, user: { ...state.user, ...action.user } }
-        : state;
     default:
       return state;
   }
@@ -173,21 +167,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const requestPasswordReset = useCallback(async (email: string) => {
-    await authService.requestPasswordReset(email);
-  }, []);
-
-  const changePassword = useCallback(async (request: PasswordChangeRequest) => {
-    await authService.changePassword(request);
-  }, []);
-
-  const updateProfile = useCallback(async (
-    updates: Partial<Pick<User, 'displayName' | 'organizationName' | 'avatarUrl'>>,
-  ) => {
-    const updated = await authService.updateProfile(updates);
-    dispatch({ type: 'UPDATE_USER', user: updated });
-  }, []);
-
   const enrollOrganization = useCallback(async (organizationName: string) => {
     const updated = await authService.enrollOrganization(organizationName);
     dispatch({ type: 'SET_AUTHENTICATED', user: updated });
@@ -204,11 +183,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     register,
     logout,
     refreshSession,
-    requestPasswordReset,
-    changePassword,
-    updateProfile,
     enrollOrganization,
-  }), [state, login, register, logout, refreshSession, requestPasswordReset, changePassword, updateProfile, enrollOrganization]);
+  }), [state, login, register, logout, refreshSession, enrollOrganization]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

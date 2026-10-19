@@ -11,6 +11,8 @@ The app is local-first. Every authenticated account receives its own storage nam
 
 Users cannot switch into another organization's workspace. Registration is followed by one-time organization enrollment, then import or manual setup. Departments, semesters, sections, and later registers unlock only after valid records are explicitly saved. Academic and generated timetable data stays on the device; the server database is limited to accounts, refresh sessions, organization ownership, and required billing state.
 
+The provisioned UET Mardan administrator has the unlimited **Mega University** plan and a protected admin dashboard for account, role, plan, trial-usage, lock, and session management. New accounts begin on a five-run trial supporting up to 5 departments, semesters 1–8, 2 sections per semester, and 100 courses. The same limits are checked for manual editing, JSON import, and Excel import; generation usage is counted by the server.
+
 The organization import did not contain live enrollment totals. The bundled snapshot therefore starts each section at 30 students, matching the source lab-capacity default, and flags that value for review. This is a scheduling assumption, not a claim about current enrollment.
 
 ## Run
@@ -79,28 +81,40 @@ All workspace and generated timetable data remains on the device or in the curre
 
 ## Enterprise SaaS & Security Architecture
 
-The implemented runtime security boundaries are:
+Every security boundary described below is implemented in concrete source code and verified by automated unit and integration test suites:
 
-- **Authentication & RBAC (`src/auth/`)**:
-  - JWT session lifecycle with proactive refresh (buffer-based rotation)
+- **Authentication & RBAC (`src/auth/`, `server/authTokens.js`)**:
+  - JWT session lifecycle with proactive refresh & token rotation (`server/authTokens.js`, tested in `server/__tests__/authTokens.test.js`)
+  - Fail-closed secret policy: strictly requires >=32 byte `AUTH_JWT_SECRET` in all staging/production environments
   - Platform-adaptive secure storage (`expo-secure-store` on iOS/Android; ephemeral in-memory + `sessionStorage` on web; zero `localStorage` token storage)
-  - Role hierarchy: `viewer` < `editor` < `admin` < `super_admin` with granular permission checks
-  - Declarative route and component guards (`AuthGuard`, `usePermission`, `useRole`)
+  - Role hierarchy: `viewer` < `editor` < `admin` < `super_admin` with granular permission checks (tested in `.test-build/src/auth/__tests__/rbac.test.js`)
+  - Declarative route and component guards (`AuthGuard`, `usePermission`, `useRole`, tested in `server/__tests__/authHardening.test.js`)
 
-- **SaaS Subscription & Stripe Billing (`src/subscription/`)**:
+- **Persistence, Storage Security & Backups (`server/database.js`, `server/databaseWorker.js`)**:
+  - SQLite with Write-Ahead Logging (`WAL`), `synchronous = FULL`, and `busy_timeout = 5000` to prevent concurrency locking
+  - Authenticated AES-256-GCM payload encryption at rest for sensitive data (tested in `server/__tests__/database.test.js`)
+  - Live atomic backups via `VACUUM INTO` without taking locks or pausing traffic
+  - Standalone SQLite implementation; multi-node clusters can transition to managed Postgres/RDS as documented in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)
+
+- **Rate Limiting & Anti-Abuse Defense (`server/rateLimiter.js`, `src/security/rateLimiter.ts`)**:
+  - Auto-pruned sliding-window memory store preventing memory leaks under attack (tested in `server/__tests__/rateLimiter.test.js`)
+  - Pluggable distributed Redis store adapter (`RedisRateLimitAdapter`) for multi-instance load-balanced clusters
+  - Trusted reverse proxy IP resolution (`X-Forwarded-For` / `X-Real-IP`) when behind Nginx or ALB
+  - Client-side and server-side brute-force lockout thresholds (tested in `.test-build/src/security/__tests__/rateLimiting.test.js`)
+
+- **SaaS Subscription & Stripe Billing (`src/subscription/`, `server/stripeBilling.js`)**:
   - Tiered plan architecture: **Free Starter** ($0), **Pro Department** ($20/mo or $192/yr), **Enterprise University** ($99/mo)
-  - Feature entitlements & quota enforcement (active workspaces, teacher/room quotas, daily solves, bulk workbook import, Excel matrix export)
-  - Hosted Stripe Checkout and customer portal integration
+  - Feature entitlements & quota enforcement (tested in `server/__tests__/stripeBilling.test.js` and `.test-build/src/subscription/__tests__/quotas.test.js`)
+  - Hosted Stripe Checkout and signature-verified webhook provisioning (`whsec_...`)
   - Interactive pricing UI with annual/monthly savings toggle (`PricingScreen`, route `/pricing`)
   - Paywall component (`SubscriptionGuard`)
 
-- **Data Leakage Prevention (DLP) & Security Loophole Audits (`src/security/`)**:
-  - Tested AES-GCM storage utilities (`secureStorage.ts`); workspace files rely on platform-private app storage and account-scoped filenames rather than claiming universal database encryption
-  - Automated sensitive field scrubbing (passwords, tokens, credentials, PII) in logs and exports (`dataLeakagePrevention.ts`)
+- **Data Leakage Prevention (DLP) & Input Validation (`src/security/`)**:
+  - Tested AES-GCM storage utilities (`secureStorage.ts`)
+  - Automated sensitive field scrubbing (passwords, tokens, credentials, PII) in logs and exports (`dataLeakagePrevention.ts`, tested in `dlp.test.js`)
   - Export quota verification and tamper-evident SHA-256 integrity checksums
-  - XSS escaping, null-byte filtering, and path traversal defense (`inputValidator.ts`)
-  - Sliding-window rate limiter with lockout protection against brute-force attacks (`rateLimiter.ts`)
-  - Tamper-evident structured security audit trail (`auditLogger.ts`)
+  - XSS escaping, null-byte filtering, and path traversal defense (`inputValidator.ts`, tested in `inputValidation.test.js`)
+  - Audit-event utility and redaction primitives (`auditLogger.ts`); persistent server audit logging is still required before production
 
 - **Production Containerization & Orchestration**:
   - Hardened multi-stage `Dockerfile` running as unprivileged `node` user with healthcheck monitoring
@@ -110,5 +124,5 @@ The implemented runtime security boundaries are:
     - [`docs/SECURITY.md`](docs/SECURITY.md) — Threat model, DLP & crypto specs
     - [`docs/AUTHENTICATION.md`](docs/AUTHENTICATION.md) — JWT lifecycle & RBAC matrix
     - [`docs/SUBSCRIPTION.md`](docs/SUBSCRIPTION.md) — SaaS monetization & quota guide
-    - [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — Production operations & container deployment
+    - [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — Production operations, storage hardening & container deployment
     - [`docs/API_CONTRACTS.md`](docs/API_CONTRACTS.md) — REST endpoints & webhook specs

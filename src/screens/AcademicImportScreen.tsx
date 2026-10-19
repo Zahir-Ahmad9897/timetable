@@ -12,11 +12,14 @@ import { Banner, Button, Card, PageIntro, StatusPill } from '../components/ui';
 import { ImportIssueCard } from '../components/import/ImportIssueCard';
 import { colors, radius, space, type } from '../theme';
 import { useAuth } from '../auth';
+import { useSubscription } from '../subscription/SubscriptionProvider';
+import { firstWorkspaceQuotaViolation } from '../subscription/workspaceQuotas';
 
 export default function AcademicImportScreen() {
   const router = useRouter();
   const { dataSource, reload, switchDataSource } = useWorkspace();
   const { user } = useAuth();
+  const { currentPlan } = useSubscription();
   const { notify } = useNotifications();
   const [draft, setDraft] = useState<AcademicImportDraft | null>(null);
   const [busy, setBusy] = useState<'template' | 'select' | 'import' | null>(null);
@@ -26,6 +29,8 @@ export default function AcademicImportScreen() {
   const select = async () => { setBusy('select'); try { const selected = await selectAcademicWorkbook(); if (selected) setDraft(selected); } catch (cause) { notify(cause instanceof Error ? cause.message : 'Workbook could not be read.', 'error'); } finally { setBusy(null); } };
   const commit = () => {
     if (!draft?.workspace || blocking.length) return;
+    const quotaError = firstWorkspaceQuotaViolation(draft.workspace, currentPlan.quotas);
+    if (quotaError) { notify(quotaError, 'error'); return; }
     confirmDestructive('Replace the Manual workspace?', 'A recovery snapshot will be created. The UET Mardan workspace stays separate, and any generated Manual draft will be invalidated.', 'Import and replace', () => {
       void (async () => {
         setBusy('import');

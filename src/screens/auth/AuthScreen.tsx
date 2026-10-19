@@ -20,18 +20,21 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '../../auth/AuthProvider';
 import { Banner, Button, Card, PageIntro, StatusPill } from '../../components/ui';
 import { useSubscription } from '../../subscription/SubscriptionProvider';
 import { colors, radius, space, type } from '../../theme';
+import { PASSWORD_POLICY } from '../../config/constants';
+import { validateEmail, validatePassword } from '../../security/inputValidator';
 
 export function AuthScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ mode?: string }>();
   const { login, register, isAuthenticated, user, logout } = useAuth();
   const { currentPlan } = useSubscription();
 
-  const [mode, setMode] = useState<'signin' | 'register'>('signin');
+  const [mode, setMode] = useState<'signin' | 'register'>(params.mode === 'register' ? 'register' : 'signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -45,9 +48,27 @@ export function AuthScreen() {
       return;
     }
 
-    if (mode === 'register' && !displayName) {
-      setError('Please enter your display name.');
+    if (!validateEmail(email.trim())) {
+      setError('Please enter a valid email address.');
       return;
+    }
+
+    if (password.length > PASSWORD_POLICY.MAX_LENGTH) {
+      setError(`Password must not exceed ${PASSWORD_POLICY.MAX_LENGTH} characters.`);
+      return;
+    }
+
+    if (mode === 'register') {
+      const cleanDisplayName = displayName.trim();
+      if (cleanDisplayName.length < 2 || cleanDisplayName.length > 100) {
+        setError('Display name must be 2 to 100 characters.');
+        return;
+      }
+      const passwordResult = validatePassword(password);
+      if (!passwordResult.valid) {
+        setError(passwordResult.errors[0] || 'Choose a stronger password.');
+        return;
+      }
     }
 
     try {
@@ -56,12 +77,12 @@ export function AuthScreen() {
         await login({ email, password });
       } else {
         await register({
-          email,
+          email: email.trim(),
           password,
-          displayName,
+          displayName: displayName.trim(),
         });
       }
-      router.back();
+      router.replace('/workspace');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Authentication failed.');
     } finally {
@@ -168,6 +189,7 @@ export function AuthScreen() {
                   value={displayName}
                   onChangeText={setDisplayName}
                   autoCapitalize="words"
+                  maxLength={100}
                 />
               </View>
 
@@ -185,6 +207,7 @@ export function AuthScreen() {
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
+              maxLength={254}
             />
           </View>
 
@@ -198,7 +221,9 @@ export function AuthScreen() {
               onChangeText={setPassword}
               secureTextEntry
               autoCapitalize="none"
+              maxLength={PASSWORD_POLICY.MAX_LENGTH}
             />
+            {mode === 'register' ? <Text style={styles.fieldHint}>Use 12+ characters with uppercase, lowercase, a number, and a special character.</Text> : null}
           </View>
 
           <View style={styles.submitWrapper}>
@@ -264,6 +289,10 @@ const styles = StyleSheet.create({
     ...type.caption,
     color: colors.ink,
     fontWeight: '600',
+  },
+  fieldHint: {
+    ...type.caption,
+    color: colors.muted,
   },
   input: {
     minHeight: 44,

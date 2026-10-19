@@ -3,17 +3,17 @@
 > **Document Classification**: Confidential / Security Engineering  
 > **Author**: Senior Security & Systems Architect  
 > **Target Release**: irid.ai Timetable SaaS Platform v1.0  
-> **Status**: Approved for Production Deployment
+> **Status**: Engineering design reference; production approval is blocked by the open items in `QA_SAAS_AUDIT.md`.
 
 ---
 
 ## 1. Executive Summary & Security Philosophy
 
-The **irid.ai Timetable** platform is built upon a **zero-trust, defense-in-depth architecture** designed to meet enterprise and higher-education institutional compliance mandates (including FERPA, GDPR, and ISO/IEC 27001 data protection principles).
+The **irid.ai Timetable** platform includes several defense-in-depth controls, but it has not been certified for FERPA, GDPR, ISO/IEC 27001, or any other compliance framework. This document describes implemented controls and must not be treated as a compliance attestation.
 
 Because academic scheduling contains institutional resource plans, faculty allocations, room capacities, and student cohort structures, the platform implements multi-layered protections:
 1. **Local-First Cryptographic Isolation**: Data is stored and manipulated on-device with zero unsolicited external transmission.
-2. **Data-at-Rest Encryption**: Workspace payloads are encrypted using AES-GCM (256-bit) with PBKDF2 key derivation.
+2. **Server Record Encryption**: Authentication and billing records in SQLite can be encrypted with AES-256-GCM. Workspace payloads remain device-local and are not currently encrypted by the workspace storage adapters.
 3. **Data Leakage Prevention (DLP)**: Automatic sensitive field scrubbing, quota enforcement, and tamper-evident digital fingerprinting.
 4. **Hardened Transport & Server Security**: Full Content Security Policy (CSP), Strict-Transport-Security (HSTS), and HTTP header hardening.
 

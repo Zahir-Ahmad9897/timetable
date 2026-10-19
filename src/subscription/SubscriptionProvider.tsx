@@ -18,16 +18,18 @@ export interface SubscriptionProviderProps {
 }
 
 export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [subscription, setSubscription] = useState<UserSubscription | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Paid entitlements come only from the server's Stripe-backed subscription.
   const currentPlan = useMemo<SubscriptionPlan>(() => {
-    const tier = subscription?.status === 'active' ? subscription.tier : 'free';
+    const tier = subscription && ['active', 'trialing'].includes(subscription.status)
+      ? subscription.tier
+      : user?.subscriptionTier || 'free';
     return getPlanByTier(tier);
-  }, [subscription?.status, subscription?.tier]);
+  }, [subscription?.status, subscription?.tier, user?.subscriptionTier]);
 
   const refreshSubscription = useCallback(async () => {
     if (!isAuthenticated) {
@@ -88,32 +90,6 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
     }
   }, []);
 
-  const cancelSubscription = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      await subscriptionService.cancelSubscription();
-      await refreshSubscription();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to cancel subscription.');
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [refreshSubscription]);
-
-  const resumeSubscription = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      await subscriptionService.resumeSubscription();
-      await refreshSubscription();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to resume subscription.');
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [refreshSubscription]);
-
   const value = useMemo<SubscriptionContextValue>(
     () => ({
       subscription,
@@ -123,8 +99,6 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
       allPlans: [...PLANS],
       upgradePlan,
       openCustomerPortal,
-      cancelSubscription,
-      resumeSubscription,
       refreshSubscription,
     }),
     [
@@ -134,8 +108,6 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
       error,
       upgradePlan,
       openCustomerPortal,
-      cancelSubscription,
-      resumeSubscription,
       refreshSubscription,
     ]
   );

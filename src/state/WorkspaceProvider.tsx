@@ -6,6 +6,8 @@ import { exportWorkspace, importWorkspace, loadWorkspace, saveWorkspace } from '
 import { confirmDestructive } from '../platform/confirm';
 import { useNotifications } from './NotificationProvider';
 import { useAuth } from '../auth';
+import { useSubscription } from '../subscription/SubscriptionProvider';
+import { firstWorkspaceQuotaViolation } from '../subscription/workspaceQuotas';
 
 export interface WorkspaceState {
   workspace: Workspace;
@@ -33,6 +35,7 @@ const Context = createContext<WorkspaceState | null>(null);
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const { notify } = useNotifications();
   const { user, isLoading: authLoading } = useAuth();
+  const { currentPlan } = useSubscription();
   const ownerKey = user?.id;
   const assignedSource: DataSource = user?.organizationId === 'org_uet_mardan' ? 'organization' : 'manual';
   const [workspace, setWorkspace] = useState(emptyWorkspace);
@@ -96,6 +99,11 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       notify('Sign in before saving a workspace.', 'error');
       return;
     }
+    const quotaError = firstWorkspaceQuotaViolation(value, currentPlan.quotas);
+    if (quotaError) {
+      notify(quotaError, 'error');
+      return;
+    }
     setSaving(true);
     try {
       const saved = await saveWorkspace(value, dataSource, ownerKey);
@@ -109,12 +117,14 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setSaving(false);
     }
-  }, [workspace, dataSource, notify, ownerKey]);
+  }, [workspace, dataSource, notify, ownerKey, currentPlan.quotas]);
 
   const importJson = useCallback(async () => {
     try {
       const imported = await importWorkspace();
       if (!imported) return;
+      const quotaError = firstWorkspaceQuotaViolation(imported, currentPlan.quotas);
+      if (quotaError) throw new Error(quotaError);
       previousRef.current = workspace;
       setWorkspace({ ...imported, sourceInfo: { ...(imported.sourceInfo || {}), kind: dataSource, label: dataSource === 'organization' ? 'UET Mardan organization data' : 'Manual data' } });
       setDirty(true);
@@ -122,7 +132,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     } catch (cause) {
       notify(cause instanceof Error ? cause.message : 'Workspace could not be imported.', 'error');
     }
-  }, [workspace, dataSource, notify, undo]);
+  }, [workspace, dataSource, notify, undo, currentPlan.quotas]);
 
   const exportJson = useCallback(async () => {
     try {

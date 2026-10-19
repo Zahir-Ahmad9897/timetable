@@ -2,7 +2,7 @@
 
 > **Standard**: RESTful JSON over HTTPS  
 > **Authentication**: HTTP Bearer JWT  
-> **Status**: Approved Specification  
+> **Status**: Implemented-subset reference. Confirm every route in `server.js`; planned gaps are tracked in `QA_SAAS_AUDIT.md`.
 > **Author**: Senior Systems Architect
 
 ---

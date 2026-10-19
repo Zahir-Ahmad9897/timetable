@@ -21,7 +21,7 @@ function toIso(value, fallback) {
 }
 
 function localStatus(status) {
-  return ['active', 'past_due', 'unpaid', 'canceled'].includes(status) ? status : 'incomplete';
+  return ['active', 'trialing', 'past_due', 'unpaid', 'canceled'].includes(status) ? status : 'incomplete';
 }
 
 function createStripeBilling(options = {}) {
@@ -120,6 +120,21 @@ function createStripeBilling(options = {}) {
     };
   }
 
+  async function createCustomerPortalSession(user) {
+    requireConfiguration();
+    if (!user.stripeCustomerId) {
+      throw new BillingError(409, 'BILLING_CUSTOMER_NOT_FOUND', 'No Stripe billing account is linked to this user.');
+    }
+    const session = await stripe.billingPortal.sessions.create({
+      customer: user.stripeCustomerId,
+      return_url: appBaseUrl + basePath + '/pricing',
+    });
+    if (!session?.url) {
+      throw new BillingError(502, 'STRIPE_PORTAL_FAILED', 'Stripe did not return a billing portal URL.');
+    }
+    return { portalUrl: session.url };
+  }
+
   function constructWebhookEvent(rawBody, signature) {
     requireConfiguration(true);
     if (!signature || typeof signature !== 'string') {
@@ -135,7 +150,7 @@ function createStripeBilling(options = {}) {
   function upsertSubscription(db, user, stripeSubscription, plan) {
     const now = new Date().toISOString();
     const item = stripeSubscription.items?.data?.[0];
-    const entitled = stripeSubscription.status === 'active';
+    const entitled = ['active', 'trialing'].includes(stripeSubscription.status);
     const customerId = objectId(stripeSubscription.customer);
     user.subscriptionTier = entitled ? plan.tier : 'free';
     if (customerId) user.stripeCustomerId = customerId;
@@ -244,7 +259,7 @@ function createStripeBilling(options = {}) {
     return { ...result, duplicate: false };
   }
 
-  return { createCheckoutSession, constructWebhookEvent, processWebhookEvent, resolvePlan };
+  return { createCheckoutSession, createCustomerPortalSession, constructWebhookEvent, processWebhookEvent, resolvePlan };
 }
 
 module.exports = { BillingError, createStripeBilling };

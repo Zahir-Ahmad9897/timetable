@@ -22,6 +22,7 @@ function Navigator() {
     <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right', gestureEnabled: true }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="welcome" options={{ animation: 'fade' }} />
+      <Stack.Screen name="contact" options={{ animation: 'fade' }} />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="resource/[page]" />
       <Stack.Screen name="import-academic" />
@@ -29,6 +30,7 @@ function Navigator() {
       <Stack.Screen name="auth" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
       <Stack.Screen name="enroll" options={{ animation: 'slide_from_right', gestureEnabled: false }} />
       <Stack.Screen name="search" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+      <Stack.Screen name="admin" options={{ animation: 'slide_from_right' }} />
     </Stack>
     <GlobalToast />
   </>;

@@ -17,7 +17,10 @@ const crypto = require('crypto');
 const { promisify } = require('node:util');
 const { BillingError, createStripeBilling } = require('./server/stripeBilling');
 const { TokenError, createTokenService } = require('./server/authTokens');
+const { isPasswordHashable, normalizeEmail, passwordValidationError, validateDisplayName, validateEmail } = require('./server/authValidation');
+const { consumeGeneration, getGenerationUsage, resetGenerationUsage } = require('./server/generationQuota');
 const { createDatabase } = require('./server/database');
+const { createRateLimiter } = require('./server/rateLimiter');
 
 const PORT = Number(process.env.PORT) || 3000;
 const DIST = path.resolve(__dirname, 'dist');
@@ -25,23 +28,16 @@ const BASE_PATH = '/timetable';
 const billing = createStripeBilling({ basePath: BASE_PATH });
 const tokenService = createTokenService();
 const database = createDatabase();
+const rateLimiter = createRateLimiter();
+const loginAttempts = rateLimiter.store;
 const derivePassword = promisify(crypto.pbkdf2);
-const loginAttempts = new Map();
 
 function loginRateKey(req, email) {
-  return `${req.socket.remoteAddress || 'unknown'}:${String(email || '').toLowerCase().trim()}`;
+  return rateLimiter.getKey(req, email);
 }
 
 function loginRateState(key) {
-  const now = Date.now();
-  const windowMs = (Number(process.env.AUTH_LOCKOUT_DURATION_MINUTES) || 15) * 60_000;
-  const current = loginAttempts.get(key);
-  if (!current || current.resetAt <= now) {
-    const fresh = { count: 0, resetAt: now + windowMs };
-    loginAttempts.set(key, fresh);
-    return fresh;
-  }
-  return current;
+  return rateLimiter.getState(key);
 }
 
 async function hashPassword(password, salt = crypto.randomBytes(16).toString('hex'), passwordIterations = 210000) {
@@ -127,15 +123,36 @@ async function readJsonBody(req) {
 async function handleApiRequest(req, res, url) {
   const pathname = url.pathname;
   const method = req.method;
+  const origin = req.headers.origin;
+  const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || 'http://localhost:8081,http://127.0.0.1:8081,http://localhost:3000')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const corsHeaders = origin && allowedOrigins.includes(origin) ? {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Credentials': 'true',
+    'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-Client-Version',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+    'Vary': 'Origin',
+  } : {};
 
   const sendJson = (status, payload) => {
     res.writeHead(status, {
       'Content-Type': 'application/json; charset=utf-8',
       'X-Content-Type-Options': 'nosniff',
       'Cache-Control': 'no-store',
+      ...corsHeaders,
     });
     res.end(JSON.stringify(payload));
   };
+
+  if (method === 'OPTIONS') {
+    if (origin && !allowedOrigins.includes(origin)) {
+      return sendJson(403, { code: 'ORIGIN_NOT_ALLOWED', message: 'This web origin is not allowed.' });
+    }
+    res.writeHead(204, { 'Cache-Control': 'no-store', ...corsHeaders });
+    return res.end();
+  }
 
   // Health check
   if (pathname === '/api/health') {
@@ -171,7 +188,9 @@ async function handleApiRequest(req, res, url) {
         return sendJson(400, { message: 'Email, password, and display name are required.' });
       }
 
-      const normalizedEmail = email.toLowerCase().trim();
+      const normalizedEmail = normalizeEmail(email);
+      if (!validateEmail(normalizedEmail)) return sendJson(400, { code: 'INVALID_EMAIL', message: 'Enter a valid email address.' });
+      if (!validateDisplayName(displayName)) return sendJson(400, { code: 'INVALID_DISPLAY_NAME', message: 'Display name must be 2 to 100 characters.' });
       if (normalizedEmail === (process.env.UET_MARDAN_EMAIL || 'uetmardan@gmail.com').toLowerCase()) {
         return sendJson(403, { message: 'This organization account is provisioned by the server administrator.' });
       }
@@ -179,7 +198,8 @@ async function handleApiRequest(req, res, url) {
         return sendJson(409, { message: 'An account with this email already exists.' });
       }
       const minimumLength = Number(process.env.AUTH_PASSWORD_MIN_LENGTH) || 12;
-      if (password.length < minimumLength) return sendJson(400, { message: `Password must contain at least ${minimumLength} characters.` });
+      const passwordError = passwordValidationError(password, minimumLength);
+      if (passwordError) return sendJson(400, { code: 'INVALID_PASSWORD', message: passwordError });
       const { salt, passwordHash, passwordIterations } = await hashPassword(password);
 
       const newUser = {
@@ -193,6 +213,7 @@ async function handleApiRequest(req, res, url) {
         passwordIterations,
         role: 'editor',
         subscriptionTier: 'free',
+        generationCount: 0,
         emailVerified: true,
         createdAt: new Date().toISOString(),
         isLocked: false,
@@ -217,7 +238,10 @@ async function handleApiRequest(req, res, url) {
         return sendJson(400, { message: 'Email and password are required.' });
       }
 
-      const normalizedEmail = email.toLowerCase().trim();
+      const normalizedEmail = normalizeEmail(email);
+      if (!validateEmail(normalizedEmail) || !isPasswordHashable(password)) {
+        return sendJson(401, { message: 'Invalid email or password.' });
+      }
       const rateKey = loginRateKey(req, normalizedEmail);
       const rateState = loginRateState(rateKey);
       const maximumAttempts = Number(process.env.AUTH_MAX_LOGIN_ATTEMPTS) || 5;
@@ -234,6 +258,13 @@ async function handleApiRequest(req, res, url) {
       if (!(await passwordMatches(password, user))) {
         rateState.count += 1;
         return sendJson(401, { message: 'Invalid email or password.' });
+      }
+
+      if (user.isLocked) {
+        return sendJson(423, {
+          code: 'ACCOUNT_LOCKED',
+          message: 'This account is locked. Contact an administrator for access.',
+        });
       }
 
       loginAttempts.delete(rateKey);
@@ -282,6 +313,40 @@ async function handleApiRequest(req, res, url) {
     return sendJson(200, publicUser(user));
   }
 
+  // DELETE /api/auth/account
+  if (pathname === '/api/auth/account' && method === 'DELETE') {
+    const context = getAuthContext(req, db);
+    if (!context) return sendJson(401, { message: 'Unauthorized or session expired.' });
+    const reservedEmail = (process.env.UET_MARDAN_EMAIL || 'uetmardan@gmail.com').toLowerCase();
+    if (context.user.email === reservedEmail) {
+      return sendJson(403, { code: 'RESERVED_ACCOUNT', message: 'The provisioned UET organization account cannot be deleted here.' });
+    }
+    const { password } = await readJsonBody(req);
+    if (!password || !(await passwordMatches(password, context.user))) {
+      return sendJson(401, { code: 'INVALID_PASSWORD', message: 'The current password is incorrect.' });
+    }
+    const activePaidSubscription = db.subscriptions.some((subscription) =>
+      subscription.userId === context.user.id &&
+      subscription.tier !== 'free' &&
+      ['active', 'trialing', 'past_due'].includes(subscription.status),
+    );
+    if (activePaidSubscription) {
+      return sendJson(409, { code: 'ACTIVE_SUBSCRIPTION', message: 'Cancel the active paid subscription before deleting this account.' });
+    }
+    const removeOwnedRecords = (records, predicate) => {
+      for (let index = records.length - 1; index >= 0; index -= 1) {
+        if (predicate(records[index])) records.splice(index, 1);
+      }
+    };
+    const userId = context.user.id;
+    removeOwnedRecords(db.refreshSessions, (session) => session.userId === userId);
+    removeOwnedRecords(db.pendingCheckouts, (checkout) => checkout.userId === userId);
+    removeOwnedRecords(db.subscriptions, (subscription) => subscription.userId === userId);
+    removeOwnedRecords(db.organizations, (organization) => organization.ownerUserId === userId);
+    removeOwnedRecords(db.users, (user) => user.id === userId);
+    return sendJson(204, {});
+  }
+
   // Each account may create exactly one organization. The client never sends
   // an organization id, so it cannot enroll into another tenant.
   if (pathname === '/api/auth/enroll' && method === 'POST') {
@@ -310,8 +375,8 @@ async function handleApiRequest(req, res, url) {
     ) || {
       id: 'sub_default_' + user.id,
       userId: user.id,
-      planId: 'plan_free',
-      tier: 'free',
+      planId: user.subscriptionTier === 'enterprise' ? 'plan_enterprise' : user.subscriptionTier === 'pro' ? 'plan_pro' : 'plan_free',
+      tier: user.subscriptionTier || 'free',
       status: 'active',
       interval: 'month',
       currentPeriodStart: new Date().toISOString(),
@@ -319,6 +384,72 @@ async function handleApiRequest(req, res, url) {
       cancelAtPeriodEnd: false,
     };
     return sendJson(200, { subscription: sub });
+  }
+
+  // Trial generation usage is server-counted so clearing browser storage does
+  // not restore the five free test runs. Mega accounts are unlimited.
+  if (pathname === '/api/usage/generation' && method === 'GET') {
+    const user = getAuthUser(req, db);
+    if (!user) return sendJson(401, { message: 'Unauthorized.' });
+    return sendJson(200, getGenerationUsage(user));
+  }
+  if (pathname === '/api/usage/generation/consume' && method === 'POST') {
+    const user = getAuthUser(req, db);
+    if (!user) return sendJson(401, { message: 'Unauthorized.' });
+    const usage = consumeGeneration(user);
+    if (!usage) {
+      const isFree = user.subscriptionTier === 'free';
+      return sendJson(403, {
+        code: isFree ? 'TRIAL_LIMIT_REACHED' : 'DAILY_LIMIT_REACHED',
+        message: isFree
+          ? 'The five free timetable test runs have been used. Upgrade to continue generating.'
+          : 'The Pro daily generation allowance has been used. Try again tomorrow or upgrade to Mega.',
+      });
+    }
+    return sendJson(200, usage);
+  }
+
+  const adminContext = pathname.startsWith('/api/admin/') ? getAuthContext(req, db) : null;
+  const isMegaAdmin = adminContext?.user.role === 'admin' && adminContext.user.organizationId === 'org_uet_mardan' && adminContext.user.subscriptionTier === 'enterprise';
+  if (pathname.startsWith('/api/admin/') && !isMegaAdmin) return sendJson(adminContext ? 403 : 401, { code: 'ADMIN_REQUIRED', message: 'Mega administrator access is required.' });
+
+  if (pathname === '/api/admin/overview' && method === 'GET') {
+    const activeSessions = db.refreshSessions.filter((session) => !session.revokedAt && Date.parse(session.expiresAt) > Date.now());
+    return sendJson(200, {
+      totals: { users: db.users.length, organizations: db.organizations.length, activeSessions: activeSessions.length, paidUsers: db.users.filter((user) => user.subscriptionTier !== 'free').length, lockedUsers: db.users.filter((user) => user.isLocked).length },
+      users: db.users.map((user) => ({ ...publicUser(user), generationCount: Number(user.generationCount) || 0, activeSessions: activeSessions.filter((session) => session.userId === user.id).length })),
+    });
+  }
+  if (pathname.startsWith('/api/admin/users/') && method === 'PATCH') {
+    const userId = decodeURIComponent(pathname.slice('/api/admin/users/'.length));
+    const target = db.users.find((user) => user.id === userId);
+    if (!target) return sendJson(404, { message: 'User not found.' });
+    if (target.organizationId === 'org_uet_mardan') return sendJson(403, { code: 'PROTECTED_ADMIN', message: 'The protected UET Mega administrator cannot be modified here.' });
+    const updates = await readJsonBody(req);
+    if (typeof updates.isLocked === 'boolean') target.isLocked = updates.isLocked;
+    if (['viewer', 'editor', 'admin'].includes(updates.role)) target.role = updates.role;
+    if (['free', 'pro', 'enterprise'].includes(updates.subscriptionTier)) target.subscriptionTier = updates.subscriptionTier;
+    if (updates.resetGenerationCount === true) resetGenerationUsage(target);
+    if (updates.revokeSessions === true || target.isLocked) {
+      const changedAt = new Date().toISOString();
+      db.refreshSessions.forEach((session) => { if (session.userId === target.id && !session.revokedAt) session.revokedAt = changedAt; });
+    }
+    return sendJson(200, { user: { ...publicUser(target), generationCount: Number(target.generationCount) || 0 } });
+  }
+
+  // POST /api/subscription/portal
+  if (pathname === '/api/subscription/portal' && method === 'POST') {
+    const user = getAuthUser(req, db);
+    if (!user) return sendJson(401, { message: 'Unauthorized.' });
+    try {
+      return sendJson(200, await billing.createCustomerPortalSession(user));
+    } catch (error) {
+      if (error instanceof BillingError) {
+        return sendJson(error.status, { code: error.code, message: error.message });
+      }
+      console.error('[billing] Stripe portal creation failed:', error);
+      return sendJson(502, { code: 'STRIPE_UNAVAILABLE', message: 'The billing portal is temporarily unavailable.' });
+    }
   }
 
   // POST /api/subscription/checkout
@@ -538,19 +669,31 @@ async function provisionUetMardanAccount() {
     return;
   }
   await database.transaction(async (db) => {
-    if (db.users.some((user) => user.email === email)) return;
-    const { salt, passwordHash, passwordIterations } = await hashPassword(password);
+    const existingUser = db.users.find((user) => user.email === email);
+    const userId = existingUser?.id || 'usr_uet_mardan';
     const organization = {
       id: 'org_uet_mardan', name: 'University of Engineering and Technology, Mardan',
-      ownerUserId: 'usr_uet_mardan', createdAt: new Date().toISOString(),
+      ownerUserId: userId, createdAt: new Date().toISOString(),
     };
     if (!db.organizations.some((item) => item.id === organization.id)) db.organizations.push(organization);
-    db.users.push({
-      id: 'usr_uet_mardan', email, displayName: 'UET Mardan',
+    const passwordIsCurrent = existingUser ? await passwordMatches(password, existingUser) : false;
+    const passwordRecord = passwordIsCurrent
+      ? { salt: existingUser.salt, passwordHash: existingUser.passwordHash, passwordIterations: existingUser.passwordIterations }
+      : await hashPassword(password);
+    const provisionedUser = {
+      id: userId, email, displayName: existingUser?.displayName || 'UET Mardan',
       organizationId: organization.id, organizationName: organization.name,
-      salt, passwordHash, passwordIterations, role: 'admin', subscriptionTier: 'enterprise',
-      emailVerified: true, createdAt: new Date().toISOString(), isLocked: false,
-    });
+      ...passwordRecord, role: 'admin', subscriptionTier: 'enterprise', generationCount: existingUser?.generationCount || 0,
+      emailVerified: true, createdAt: existingUser?.createdAt || new Date().toISOString(), isLocked: false,
+    };
+    if (existingUser) Object.assign(existingUser, provisionedUser);
+    else db.users.push(provisionedUser);
+    if (existingUser && !passwordIsCurrent) {
+      const changedAt = new Date().toISOString();
+      db.refreshSessions.forEach((session) => {
+        if (session.userId === existingUser.id && !session.revokedAt) session.revokedAt = changedAt;
+      });
+    }
   });
 }
 

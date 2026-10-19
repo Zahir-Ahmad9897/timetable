@@ -1,0 +1,34 @@
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../auth';
+import { AdminOverview, AdminUser, getAdminOverview, updateAdminUser } from './adminService';
+import { Banner, Button, Card, PageIntro, SearchField, Select, StatusPill } from '../components/ui';
+import { colors, radius, space, type } from '../theme';
+
+export default function AdminDashboardScreen() {
+  const router = useRouter();
+  const { user } = useAuth();
+  const [overview, setOverview] = useState<AdminOverview | null>(null);
+  const [query, setQuery] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState<string | null>(null);
+  const authorized = user?.organizationId === 'org_uet_mardan' && user.role === 'admin' && user.subscriptionTier === 'enterprise';
+  const load = useCallback(async () => { if (!authorized) return; try { setError(''); setOverview(await getAdminOverview()); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Dashboard could not be loaded.'); } }, [authorized]);
+  useEffect(() => { void load(); }, [load]);
+  const users = useMemo(() => (overview?.users || []).filter((item) => `${item.displayName} ${item.email} ${item.organizationName || ''}`.toLowerCase().includes(query.trim().toLowerCase())), [overview?.users, query]);
+  const mutate = async (target: AdminUser, updates: Parameters<typeof updateAdminUser>[1]) => { try { setBusy(target.id); setError(''); await updateAdminUser(target.id, updates); await load(); } catch (cause) { setError(cause instanceof Error ? cause.message : 'User update failed.'); } finally { setBusy(null); } };
+  if (!authorized) return <ScrollView contentContainerStyle={styles.page}><PageIntro eyebrow="RESTRICTED" title="Administrator access required" detail="Only the protected UET Mardan Mega administrator can open this dashboard." /><Button label="Go back" onPress={() => router.back()} /></ScrollView>;
+  return <ScrollView contentContainerStyle={styles.page} refreshControl={<RefreshControl refreshing={busy === 'refresh'} onRefresh={() => { setBusy('refresh'); void load().finally(() => setBusy(null)); }} />}>
+    <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.back}><Ionicons name="arrow-back" size={21} color={colors.primary} /><Text style={styles.backText}>Back</Text></Pressable>
+    <PageIntro eyebrow="MEGA ADMINISTRATION" title="UET Mardan admin dashboard" detail="Manage accounts, access, plans, trial usage, and active sessions from one protected control center." />
+    {error ? <Banner type="error" text={error} /> : null}
+    {overview ? <View style={styles.metrics}>{Object.entries({ Users: overview.totals.users, Organizations: overview.totals.organizations, 'Active sessions': overview.totals.activeSessions, 'Paid / Mega': overview.totals.paidUsers, Locked: overview.totals.lockedUsers }).map(([label, value]) => <Card key={label} style={styles.metric}><Text style={styles.metricValue}>{value}</Text><Text style={styles.metricLabel}>{label}</Text></Card>)}</View> : <Banner type="info" text="Loading administrator data…" />}
+    <Card><Text style={styles.title}>Mandatory controls</Text><Text style={styles.detail}>Search users, lock compromised accounts, revoke sessions, reset trial usage, and assign authorized roles or plans. The protected UET administrator cannot be modified.</Text><SearchField value={query} onChangeText={setQuery} placeholder="Search name, email, or organization" /></Card>
+    <View style={styles.list}>{users.map((target) => { const protectedAdmin = target.organizationId === 'org_uet_mardan'; return <Card key={target.id}><View style={styles.heading}><View style={{ flex: 1 }}><Text style={styles.title}>{target.displayName}</Text><Text style={styles.detail}>{target.email}</Text><Text style={styles.detail}>{target.organizationName || 'Not enrolled'} · {target.activeSessions} active session(s)</Text></View><StatusPill label={protectedAdmin ? 'PROTECTED MEGA' : target.isLocked ? 'LOCKED' : target.subscriptionTier.toUpperCase()} tone={target.isLocked ? 'danger' : 'info'} /></View><View style={styles.fields}><Select label="Role" value={target.role} onChange={(role) => { void mutate(target, { role }); }} disabled={protectedAdmin || busy === target.id} options={[{ label: 'Viewer', value: 'viewer' }, { label: 'Editor', value: 'editor' }, { label: 'Administrator', value: 'admin' }]} /><Select label="Plan" value={target.subscriptionTier} onChange={(subscriptionTier) => { void mutate(target, { subscriptionTier }); }} disabled={protectedAdmin || busy === target.id} options={[{ label: 'Free trial', value: 'free' }, { label: 'Pro', value: 'pro' }, { label: 'Mega', value: 'enterprise' }]} /></View><Text style={styles.detail}>Trial generations used: {target.generationCount}{target.subscriptionTier === 'free' ? ' / 5' : ' · unlimited'}</Text><View style={styles.actions}><Button label="Reset trial runs" variant="secondary" disabled={protectedAdmin || busy === target.id} onPress={() => { void mutate(target, { resetGenerationCount: true }); }} /><Button label="Revoke sessions" variant="secondary" disabled={protectedAdmin || busy === target.id} onPress={() => { void mutate(target, { revokeSessions: true }); }} /><Button label={target.isLocked ? 'Unlock account' : 'Lock account'} variant={target.isLocked ? 'secondary' : 'danger'} disabled={protectedAdmin || busy === target.id} onPress={() => { void mutate(target, { isLocked: !target.isLocked }); }} /></View></Card>; })}</View>
+    <Card><Text style={styles.title}>Optional operational tools</Text><Text style={styles.detail}>Pull to refresh live totals. Account deletion remains user-confirmed, paid subscription changes remain webhook-controlled, and local academic data remains private on each user device.</Text></Card>
+  </ScrollView>;
+}
+
+const styles = StyleSheet.create({ page: { width: '100%', maxWidth: 1100, alignSelf: 'center', padding: space.md, paddingBottom: 80, gap: space.md, backgroundColor: colors.canvas }, back: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 7 }, backText: { color: colors.primary, ...type.label }, metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, metric: { minWidth: 140, flex: 1 }, metricValue: { color: colors.ink, ...type.display }, metricLabel: { color: colors.muted, ...type.caption }, list: { gap: 10 }, heading: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' }, title: { color: colors.ink, ...type.title }, detail: { color: colors.muted, ...type.body, marginTop: 3 }, fields: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 }, actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 } });

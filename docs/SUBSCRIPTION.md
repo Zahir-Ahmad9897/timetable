@@ -1,7 +1,7 @@
 # SaaS Subscription, Billing & Quota Architecture
 
 > **Component**: `src/subscription/`  
-> **Status**: Production Ready  
+> **Status**: Implemented billing baseline; production blockers are tracked in `QA_SAAS_AUDIT.md`.
 > **Author**: Senior Systems Engineer
 
 ---
@@ -11,7 +11,7 @@
 The irid.ai Timetable SaaS platform follows a **subscription-based model** (similar to ChatGPT Plus / Slack Pro / Figma Team):
 - **Free Starter**: Self-serve entry point for individual educators and small single-department schedules.
 - **Pro Department ($20/mo or $192/yr)**: Targeted at academic department chairs, schedule coordinators, and medium faculties requiring Excel workbook bulk imports, high-speed generation runs, and spreadsheet exports.
-- **Enterprise University ($99/mo or Custom)**: Built for dean offices, campus-wide scheduling, SAML/SSO authentication, custom branding, and dedicated SLA.
+- **Mega University ($99/mo or $990/yr)**: Unlimited academic records and generation for institution-scale testing. SSO, branding, and contractual SLA features remain roadmap items.
 
 ---
 
@@ -20,17 +20,20 @@ The irid.ai Timetable SaaS platform follows a **subscription-based model** (simi
 | Feature / Limit | Free Starter ($0) | Pro Department ($20/mo) | Enterprise University ($99/mo) |
 |---|:---:|:---:|:---:|
 | **Target Audience** | Individual teachers | Department chairs & faculties | Entire universities & school networks |
-| **Active Workspaces** | 1 | 10 | Unlimited |
-| **Max Departments** | 3 | 20 | Unlimited |
-| **Max Teachers** | 20 | 200 | Unlimited |
-| **Max Rooms** | 15 | 100 | Unlimited |
-| **AI Schedule Solves / Day** | 5 | 100 | Unlimited |
-| **PDF Timetable Export** | ✅ Included | ✅ High-Res | ✅ White-label & custom branded |
-| **Excel (.xlsx) Timetable Export** | ❌ Locked | ✅ Full matrix export | ✅ Full matrix export |
-| **Academic Bulk Excel Import** | ❌ Locked | ✅ Multi-sheet parser | ✅ Multi-sheet parser |
-| **Tamper-Evident Audit Logs** | ❌ Locked | ✅ Included | ✅ Real-time webhook export |
-| **Single Sign-On (SSO / SAML)** | ❌ No | ❌ No | ✅ Okta, Azure AD, Google Workspace |
-| **Support SLA** | Community | Priority email & discord | Dedicated account manager & 99.9% uptime |
+| **Device-local workspace** | 1 | 1 | 1 |
+| **Max Departments** | 5 | 20 | Unlimited |
+| **Semesters / Department** | 8 (numbers 1–8) | 14 | Unlimited |
+| **Sections / Semester** | 2 | 10 | Unlimited |
+| **Max Courses** | 100 | 1,000 | Unlimited |
+| **Max Teachers** | 100 | 200 | Unlimited |
+| **Max Rooms** | 100 | 100 | Unlimited |
+| **AI Schedule Test Runs** | 5 lifetime | 100/day | Unlimited |
+| **PDF Timetable Export** | Included | Included | Included |
+| **Excel (.xlsx) Timetable Export** | Locked | Included | Included |
+| **Academic Bulk Excel Import** | Included within quotas | Included | Included |
+| **Server Audit Logs** | Not available | Not available | Planned |
+| **Single Sign-On (SSO / SAML)** | Not available | Not available | Planned |
+| **Support SLA** | None | None | Not contracted |
 
 ---
 

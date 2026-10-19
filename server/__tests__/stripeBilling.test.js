@@ -31,6 +31,7 @@ function activeStripeSubscription(overrides = {}) {
 
 function createFixture(subscription = activeStripeSubscription()) {
   let checkoutParams;
+  let portalParams;
   const stripeClient = {
     checkout: {
       sessions: {
@@ -43,6 +44,14 @@ function createFixture(subscription = activeStripeSubscription()) {
     subscriptions: {
       retrieve: async () => subscription,
     },
+    billingPortal: {
+      sessions: {
+        create: async (params) => {
+          portalParams = params;
+          return { url: 'https://billing.stripe.com/p/session/test' };
+        },
+      },
+    },
     webhooks: {
       constructEvent: () => {
         throw new Error('invalid signature');
@@ -52,6 +61,7 @@ function createFixture(subscription = activeStripeSubscription()) {
   return {
     billing: createStripeBilling({ env: TEST_ENV, stripeClient }),
     getCheckoutParams: () => checkoutParams,
+    getPortalParams: () => portalParams,
   };
 }
 
@@ -130,6 +140,51 @@ describe('Stripe-backed subscription provisioning', () => {
     assert.equal(db.pendingCheckouts[0].status, 'completed');
     assert.equal(replay.duplicate, true);
     assert.equal(db.subscriptions.length, 1);
+  });
+
+  it('preserves paid entitlements while a Stripe subscription is trialing', async () => {
+    const trialingSubscription = activeStripeSubscription({ status: 'trialing' });
+    const { billing } = createFixture(trialingSubscription);
+    const db = createDb();
+    const checkout = await billing.createCheckoutSession(db.users[0], 'plan_pro', 'month');
+    db.pendingCheckouts.push(checkout.pendingCheckout);
+
+    await billing.processWebhookEvent({
+      id: 'evt_trialing',
+      type: 'checkout.session.completed',
+      data: {
+        object: {
+          id: checkout.sessionId,
+          mode: 'subscription',
+          payment_status: 'paid',
+          client_reference_id: 'usr_1',
+          subscription: 'sub_paid_1',
+          metadata: { userId: 'usr_1', planId: 'plan_pro', interval: 'month' },
+        },
+      },
+    }, db);
+
+    assert.equal(db.users[0].subscriptionTier, 'pro');
+    assert.equal(db.subscriptions[0].status, 'trialing');
+    assert.equal(db.subscriptions[0].tier, 'pro');
+  });
+
+  it('creates a customer-owned billing portal session with a safe return URL', async () => {
+    const { billing, getPortalParams } = createFixture();
+    const result = await billing.createCustomerPortalSession({
+      id: 'usr_1',
+      stripeCustomerId: 'cus_1',
+    });
+
+    assert.equal(result.portalUrl, 'https://billing.stripe.com/p/session/test');
+    assert.deepEqual(getPortalParams(), {
+      customer: 'cus_1',
+      return_url: 'https://timetable.example.com/timetable/pricing',
+    });
+    await assert.rejects(
+      () => billing.createCustomerPortalSession({ id: 'usr_without_customer' }),
+      (error) => error instanceof BillingError && error.code === 'BILLING_CUSTOMER_NOT_FOUND',
+    );
   });
 
   it('rejects webhook requests whose Stripe signature is invalid', () => {

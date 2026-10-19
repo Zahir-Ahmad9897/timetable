@@ -24,7 +24,7 @@ export default function SettingsScreen() {
       <View style={styles.heading}>
         <Text accessibilityRole="header" style={styles.title}>Account & SaaS Subscription</Text>
         <StatusPill
-          label={isAuthenticated && user ? `${currentPlan.tier.toUpperCase()} • ${user.role.toUpperCase()}` : 'Standalone Guest'}
+          label={isAuthenticated && user ? `${currentPlan.tier === 'enterprise' ? 'MEGA' : currentPlan.tier.toUpperCase()} • ${user.role.toUpperCase()}` : 'Standalone Guest'}
           tone={isAuthenticated ? 'success' : 'neutral'}
         />
       </View>
@@ -35,6 +35,7 @@ export default function SettingsScreen() {
           <View style={styles.actions}>
             <Button label="Subscription Plans" icon="card-outline" variant="primary" onPress={() => router.push('/pricing' as any)} />
             <Button label="Account Details" icon="person-outline" variant="secondary" onPress={() => router.push('/auth' as any)} />
+            {user.organizationId === 'org_uet_mardan' && user.role === 'admin' && user.subscriptionTier === 'enterprise' ? <Button label="Admin Dashboard" icon="shield-checkmark-outline" variant="secondary" onPress={() => router.push('/admin' as any)} /> : null}
             <Button label="Sign Out" icon="log-out-outline" variant="quiet" onPress={() => { void logout(); }} />
           </View>
         </>

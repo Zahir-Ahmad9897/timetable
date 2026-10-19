@@ -1,11 +1,18 @@
 'use strict';
 
+const crypto = require('node:crypto');
 const path = require('node:path');
 const { Worker } = require('node:worker_threads');
 
 function createDatabase(options = {}) {
   const databaseFile = options.databaseFile || process.env.AUTH_DB_FILE || path.resolve(__dirname, '..', 'server-data', 'auth.sqlite');
-  const worker = new Worker(path.resolve(__dirname, 'databaseWorker.js'), { workerData: { databaseFile } });
+  const encryptionKey = options.encryptionKey !== undefined
+    ? options.encryptionKey
+    : (process.env.AUTH_DB_ENCRYPTION_KEY || (process.env.AUTH_JWT_SECRET ? crypto.createHash('sha256').update(`db:${process.env.AUTH_JWT_SECRET}`).digest('hex') : undefined));
+
+  const worker = new Worker(path.resolve(__dirname, 'databaseWorker.js'), {
+    workerData: { databaseFile, encryptionKey },
+  });
   const pending = new Map();
   let nextId = 1;
   let transactionQueue = Promise.resolve();
@@ -47,13 +54,18 @@ function createDatabase(options = {}) {
     return callback(await call('read'));
   }
 
+  async function backup(destinationFile) {
+    await transactionQueue;
+    return call('backup', { destinationFile });
+  }
+
   async function close() {
     await transactionQueue;
     await call('close');
     await worker.terminate();
   }
 
-  return { close, databaseFile, read, transaction };
+  return { backup, close, databaseFile, read, transaction };
 }
 
 module.exports = { createDatabase };

@@ -7,14 +7,19 @@ import { arrangementSignature, generateTimetable } from '../domain/generator';
 import { validateWorkspace } from '../domain/validation';
 import { colors, radius, space, type } from '../theme';
 import { Banner, Button, Card, PageIntro, StatusPill } from '../components/ui';
+import { consumeGeneration, GenerationUsage, getGenerationUsage } from '../subscription/subscriptionService';
+import { useSubscription } from '../subscription/SubscriptionProvider';
 
 export default function GenerateScreen({ onOpenTimetable }: { onOpenTimetable: () => void }) {
   const { workspace, dataSource, update, save, refreshing, reload } = useWorkspace();
+  const { currentPlan } = useSubscription();
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState('');
   const [progressPercent, setProgressPercent] = useState(0);
   const [diagnostics, setDiagnostics] = useState<string[]>([]);
   const [selectedDepartmentIds, setSelectedDepartmentIds] = useState<string[]>([]);
+  const [usage, setUsage] = useState<GenerationUsage | null>(null);
+  useEffect(() => { void getGenerationUsage().then(setUsage).catch(() => setUsage(null)); }, []);
   const departmentSignature = workspace.departments.map((item) => item.id).join('|');
   useEffect(() => { setSelectedDepartmentIds(dataSource === 'organization' ? workspace.departments.slice(0, 1).map((item) => item.id) : workspace.departments.map((item) => item.id)); }, [dataSource, departmentSignature]);
   const issues = useMemo(() => validateWorkspace(workspace), [workspace]);
@@ -32,6 +37,7 @@ export default function GenerateScreen({ onOpenTimetable }: { onOpenTimetable: (
     setProgressPercent(3);
     setGenerating(true); setDiagnostics([]); setProgress('Preparing the scheduling search…');
     try {
+      setUsage(await consumeGeneration());
       await new Promise<void>((resolve) => setTimeout(resolve, 50));
       const currentSignature = workspace.generation ? workspace.generation.arrangementSignature || arrangementSignature(workspace.generation.sessions) : null;
       const excludedSignatures = [...new Set([...(workspace.generationSignatures || []), ...(currentSignature ? [currentSignature] : [])])];
@@ -72,6 +78,7 @@ export default function GenerateScreen({ onOpenTimetable }: { onOpenTimetable: (
       {capacity.length ? <View style={styles.capacityList}>{capacity.map((row) => <View key={`${row.departmentId}-${row.type}`} style={styles.capacity}><View style={styles.capacityIcon}><Ionicons name={row.type === 'lab' ? 'flask-outline' : 'easel-outline'} size={19} color={colors.primary} /></View><View style={{ flex: 1 }}><Text style={styles.capacityTitle}>{row.departmentName} · {row.type === 'lab' ? 'Labs' : 'Lecture rooms'}</Text><Text style={styles.capacityDetail}>{row.required.toFixed(1)} h required · {row.home.toFixed(1)} h home · {row.borrowable.toFixed(1)} h shared</Text></View><StatusPill label={row.shortage ? `${row.shortage.toFixed(1)} h short` : 'Fits'} tone={row.shortage ? 'danger' : 'success'} /></View>)}</View> : <Banner type="info" text="Add valid assignments to calculate weekly demand." />}
     </Step>
     <Step number="3" title="Generate" status={generating ? `${progressPercent}% complete` : ready ? `${expectedSessions} sessions expected` : 'Waiting for readiness'} complete={draftMatchesCurrentSelection}>
+      <Banner type={usage?.limit === -1 || (usage?.remaining || 0) > 0 ? 'info' : 'warning'} text={usage?.limit === -1 ? `${currentPlan.name} plan: unlimited timetable generations.` : usage ? `${currentPlan.name} plan: ${usage.remaining} of ${usage.limit} ${currentPlan.tier === 'free' ? 'trial' : 'daily'} runs remaining.` : 'Generation allowance will be checked securely when you start.'} />
       <Text style={styles.helper}>Every click excludes the current and previously accepted arrangements. Only a complete, independently validated, unseen combination is saved.</Text>
       {workspace.generationSignatures?.length ? <Text style={styles.history}>{workspace.generationSignatures.length} previous arrangement fingerprint{workspace.generationSignatures.length === 1 ? '' : 's'} remembered on this device.</Text> : null}
       {generating ? <View style={styles.progressPanel} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: progressPercent, text: progress }}><View style={styles.progressHeader}><Text style={styles.progressLabel}>{progress}</Text><Text style={styles.progressPercent}>{progressPercent}%</Text></View><View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${progressPercent}%` as `${number}%` }]} /></View></View> : null}

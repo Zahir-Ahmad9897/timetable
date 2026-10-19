@@ -18,7 +18,7 @@ import { useSubscription } from './SubscriptionProvider';
 import { BillingInterval, SubscriptionPlan } from './types';
 
 export function PricingScreen() {
-  const { currentPlan, upgradePlan, openCustomerPortal, isLoading } = useSubscription();
+  const { subscription, currentPlan, upgradePlan, openCustomerPortal, isLoading } = useSubscription();
   const [interval, setInterval] = useState<BillingInterval>('year');
 
   const currentTier = currentPlan.tier;
@@ -131,7 +131,7 @@ export function PricingScreen() {
       </View>
 
       {/* Customer Billing Portal Link */}
-      {currentTier !== 'free' && (
+      {Boolean(subscription?.stripeCustomerId) && (
         <View style={styles.portalSection}>
           <Text style={styles.portalText}>Need to update payment method or download invoices?</Text>
           <Button

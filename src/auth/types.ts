@@ -131,11 +131,6 @@ export interface PasswordResetRequest {
   readonly email: string;
 }
 
-export interface PasswordChangeRequest {
-  readonly currentPassword: string;
-  readonly newPassword: string;
-}
-
 export interface RefreshTokenRequest {
   readonly refreshToken: string;
 }
@@ -172,8 +167,5 @@ export interface AuthContextValue {
   register: (request: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
   refreshSession: () => Promise<void>;
-  requestPasswordReset: (email: string) => Promise<void>;
-  changePassword: (request: PasswordChangeRequest) => Promise<void>;
-  updateProfile: (updates: Partial<Pick<User, 'displayName' | 'organizationName' | 'avatarUrl'>>) => Promise<void>;
   enrollOrganization: (organizationName: string) => Promise<void>;
 }

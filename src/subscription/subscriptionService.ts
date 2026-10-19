@@ -12,13 +12,26 @@ import {
   BillingInterval,
   CheckoutSessionResponse,
   CustomerPortalSessionResponse,
-  Invoice,
   UserSubscription,
 } from './types';
 
 function getApiUrl(): string {
   return getEnvironmentConfig().API_URL.replace(/\/+$/, '');
 }
+
+export interface GenerationUsage { used: number; limit: number; remaining: number }
+
+async function generationUsageRequest(path: string, method: 'GET' | 'POST'): Promise<GenerationUsage> {
+  const token = await getAccessToken();
+  if (!token) throw new Error('Sign in before generating a timetable.');
+  const response = await fetch(`${getApiUrl()}${path}`, { method, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } });
+  const body = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(body?.message || 'Generation allowance could not be verified.');
+  return body as GenerationUsage;
+}
+
+export const getGenerationUsage = () => generationUsageRequest('/api/usage/generation', 'GET');
+export const consumeGeneration = () => generationUsageRequest('/api/usage/generation/consume', 'POST');
 
 
 /**
@@ -28,34 +41,22 @@ export async function getCurrentSubscription(): Promise<UserSubscription | null>
   const token = await getAccessToken();
   if (!token) return null;
 
-  try {
-    const response = await fetch(`${getApiUrl()}/api/subscription`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
+  const response = await fetch(`${getApiUrl()}/api/subscription`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
 
-    if (response.status === 404) return null;
-    if (!response.ok) throw new Error('Failed to fetch subscription');
-
-    const data = await response.json();
-    return data.subscription as UserSubscription;
-  } catch {
-    // Offline or demo fallback: return local Pro trial simulation if user has local session
-    return {
-      id: 'sub_demo_active',
-      userId: 'usr_local_user',
-      planId: 'plan_free',
-      tier: 'free',
-      status: 'active',
-      interval: 'month',
-      currentPeriodStart: new Date().toISOString(),
-      currentPeriodEnd: new Date(Date.now() + 30 * 86400 * 1000).toISOString(),
-      cancelAtPeriodEnd: false,
-    };
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    const body = await response.json().catch(() => null) as { message?: string } | null;
+    throw new Error(body?.message || 'Subscription details could not be loaded.');
   }
+
+  const data = await response.json() as { subscription: UserSubscription };
+  return data.subscription;
 }
 
 /**
@@ -118,67 +119,4 @@ export async function createCustomerPortalSession(): Promise<CustomerPortalSessi
   }
 
   return response.json();
-}
-
-/**
- * Cancels the user subscription at the end of the current billing cycle.
- */
-export async function cancelSubscription(): Promise<void> {
-  const token = await getAccessToken();
-  if (!token) throw new Error('Not authenticated.');
-
-  const response = await fetch(`${getApiUrl()}/api/subscription/cancel`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to cancel subscription.');
-  }
-}
-
-/**
- * Resumes a subscription scheduled for cancellation.
- */
-export async function resumeSubscription(): Promise<void> {
-  const token = await getAccessToken();
-  if (!token) throw new Error('Not authenticated.');
-
-  const response = await fetch(`${getApiUrl()}/api/subscription/resume`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to resume subscription.');
-  }
-}
-
-/**
- * Fetches billing invoice history.
- */
-export async function getInvoices(): Promise<Invoice[]> {
-  const token = await getAccessToken();
-  if (!token) return [];
-
-  try {
-    const response = await fetch(`${getApiUrl()}/api/subscription/invoices`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) return [];
-    const data = await response.json();
-    return data.invoices || [];
-  } catch {
-    return [];
-  }
 }

@@ -114,13 +114,20 @@ export function getConfig(): AppEnvironment {
   // the configured API origin.
   const publicApiUrl =
     typeof process !== 'undefined' ? process.env.EXPO_PUBLIC_API_URL || '' : '';
+  const localWebApiUrl =
+    nodeEnv !== 'production' &&
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') &&
+    window.location.port !== '3000'
+      ? `http://${window.location.hostname}:3000`
+      : '';
 
   _config = Object.freeze({
     nodeEnv,
     appVersion: env('APP_VERSION', '1.0.0'),
     appBaseUrl: env('APP_BASE_URL', 'http://localhost:3000'),
     appBasePath: env('APP_BASE_PATH', '/timetable'),
-    apiUrl: publicApiUrl,
+    apiUrl: publicApiUrl || localWebApiUrl,
 
     auth: Object.freeze({
       jwtIssuer: env('AUTH_JWT_ISSUER', 'iridai-timetable'),

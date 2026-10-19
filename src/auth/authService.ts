@@ -22,7 +22,6 @@ import {
   AuthTokens,
   LoginRequest,
   LoginResponse,
-  PasswordChangeRequest,
   RegisterRequest,
   RegisterResponse,
   User,
@@ -120,12 +119,21 @@ async function request<T>(options: RequestOptions): Promise<T> {
     }
   }
 
-  const response = await fetch(url, {
-    method: options.method,
-    headers,
-    body: options.body ? JSON.stringify(options.body) : undefined,
-    credentials: 'include', // Send cookies for httpOnly refresh tokens
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: options.method,
+      headers,
+      body: options.body ? JSON.stringify(options.body) : undefined,
+      credentials: 'include', // Send cookies for httpOnly refresh tokens
+    });
+  } catch {
+    throw new AuthError(
+      `Cannot reach the authentication server at ${_apiBaseUrl || 'this site'}. Start the API server and try again.`,
+      503,
+      'API_UNREACHABLE',
+    );
+  }
 
   // Handle 401 with automatic token refresh
   if (response.status === 401 && !options.skipRefresh) {
@@ -244,32 +252,6 @@ export async function logout(): Promise<void> {
 }
 
 /**
- * Requests a password reset email.
- * Always returns success to prevent email enumeration attacks.
- */
-export async function requestPasswordReset(email: string): Promise<void> {
-  await request<void>({
-    method: 'POST',
-    path: '/api/auth/password-reset',
-    body: { email },
-    authenticated: false,
-  });
-}
-
-/**
- * Changes the authenticated user's password.
- *
- * @throws {AuthError} On incorrect current password or weak new password
- */
-export async function changePassword(data: PasswordChangeRequest): Promise<void> {
-  await request<void>({
-    method: 'POST',
-    path: '/api/auth/password-change',
-    body: data,
-  });
-}
-
-/**
  * Retrieves the current user's profile.
  *
  * @throws {AuthError} On expired session
@@ -278,21 +260,6 @@ export async function getProfile(): Promise<User> {
   return request<User>({
     method: 'GET',
     path: '/api/auth/profile',
-  });
-}
-
-/**
- * Updates the current user's profile.
- *
- * @throws {AuthError} On validation failure
- */
-export async function updateProfile(
-  updates: Partial<Pick<User, 'displayName' | 'organizationName' | 'avatarUrl'>>,
-): Promise<User> {
-  return request<User>({
-    method: 'PATCH',
-    path: '/api/auth/profile',
-    body: updates,
   });
 }
 
@@ -327,18 +294,6 @@ export async function refreshSession(): Promise<AuthTokens> {
   const tokens = normalizeTokens(response.tokens);
   await storeTokens(tokens);
   return tokens;
-}
-
-/**
- * Verifies the user's email with a token from the verification link.
- */
-export async function verifyEmail(token: string): Promise<void> {
-  await request<void>({
-    method: 'POST',
-    path: '/api/auth/verify-email',
-    body: { token },
-    authenticated: false,
-  });
 }
 
 /**

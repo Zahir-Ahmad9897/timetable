@@ -30,8 +30,13 @@ export interface PlanFeature {
 export interface PlanQuota {
   maxWorkspaces: number; // -1 for unlimited
   maxDepartments: number;
+  maxSemestersPerDepartment: number;
+  maxSectionsPerSemester: number;
+  maxCourses: number;
   maxTeachers: number;
   maxRooms: number;
+  maxAssignments: number;
+  maxGenerationsTotal: number;
   maxGenerationsPerDay: number;
   excelExport: boolean;
   academicImport: boolean;
@@ -68,6 +73,8 @@ export interface UserSubscription {
   currentPeriodStart: string; // ISO 8601
   currentPeriodEnd: string; // ISO 8601
   cancelAtPeriodEnd: boolean;
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
   canceledAt?: string;
   paymentMethod?: {
     brand: string;
@@ -75,18 +82,6 @@ export interface UserSubscription {
     expMonth: number;
     expYear: number;
   };
-}
-
-export interface Invoice {
-  id: string;
-  number: string;
-  amount: number;
-  currency: string;
-  status: 'paid' | 'open' | 'void' | 'uncollectible';
-  periodStart: string;
-  periodEnd: string;
-  createdAt: string;
-  pdfUrl?: string;
 }
 
 export interface CheckoutSessionResponse {
@@ -106,7 +101,5 @@ export interface SubscriptionContextValue {
   allPlans: SubscriptionPlan[];
   upgradePlan: (planId: string, interval: BillingInterval) => Promise<void>;
   openCustomerPortal: () => Promise<void>;
-  cancelSubscription: () => Promise<void>;
-  resumeSubscription: () => Promise<void>;
   refreshSubscription: () => Promise<void>;
 }

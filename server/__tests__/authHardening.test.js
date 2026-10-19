@@ -28,10 +28,12 @@ test('authentication hardening policy', async (t) => {
 
   await t.test('does not silently simulate successful auth operations', () => {
     const authService = read('src/auth/authService.ts');
+    const subscriptionService = read('src/subscription/subscriptionService.ts');
 
     assert.doesNotMatch(authService, /fall back to embedded auth/i);
     assert.doesNotMatch(authService, /offline simulated success/i);
     assert.doesNotMatch(authService, /graceful offline no-op/i);
+    assert.doesNotMatch(subscriptionService, /sub_demo_active|usr_local_user/);
   });
 
   await t.test('uses transactional persistence, asynchronous password hashing, and a standard JWT library', () => {
@@ -55,7 +57,13 @@ test('authentication hardening policy', async (t) => {
       assert.match(source, /ownerKey/);
       assert.match(source, /safeOwner/);
     }
-    assert.match(read('server.js'), /ALREADY_ENROLLED/);
+    const server = read('server.js');
+    assert.match(server, /ALREADY_ENROLLED/);
+    assert.match(server, /\/api\/auth\/account/);
+    assert.match(server, /RESERVED_ACCOUNT/);
+    assert.match(server, /TRIAL_LIMIT_REACHED/);
+    assert.match(server, /\/api\/admin\/overview/);
+    assert.match(server, /PROTECTED_ADMIN/);
   });
 
   await t.test('keeps server secrets out of the client bundle and throttles login failures', () => {
@@ -63,6 +71,17 @@ test('authentication hardening policy', async (t) => {
     const server = read('server.js');
     assert.match(server, /loginRateState/);
     assert.match(server, /Too many failed sign-in attempts/);
+  });
+
+  await t.test('rejects a locked account before issuing a new session', () => {
+    const server = read('server.js');
+    const lockedCheck = server.indexOf('if (user.isLocked)');
+    const tokenIssue = server.indexOf('tokenService.issue(user, db.refreshSessions)', lockedCheck);
+
+    assert.notEqual(lockedCheck, -1, 'the login handler must reject locked users');
+    assert.notEqual(tokenIssue, -1, 'the login handler must still contain its token issue point');
+    assert.ok(lockedCheck < tokenIssue, 'locked users must be rejected before a session is issued');
+    assert.match(server.slice(lockedCheck, tokenIssue), /ACCOUNT_LOCKED/);
   });
 
   await t.test('guards every route that exposes workspace data or mutations', () => {

@@ -9,6 +9,9 @@ import { colors, radius, space, type } from '../theme';
 import { Banner, Button, Card, EmptyState, Field, PageIntro, Pagination, SearchField, Select, StatusPill } from '../components/ui';
 import { usePaginatedRecords } from '../hooks/usePaginatedRecords';
 import { confirmDestructive } from '../platform/confirm';
+import { useSubscription } from '../subscription/SubscriptionProvider';
+import { firstWorkspaceQuotaViolation } from '../subscription/workspaceQuotas';
+import { useNotifications } from '../state/NotificationProvider';
 
 type CollectionKey = 'departments' | 'semesters' | 'sections' | 'courses' | 'teachers' | 'assignments' | 'rooms';
 type SetupPage = 'home' | CollectionKey | 'settings';
@@ -58,6 +61,8 @@ function removeWithDependents(workspace: Workspace, key: CollectionKey, id: stri
 export default function SetupScreen({ initialPage = 'home', initialEditingId = null, onClose }: { initialPage?: SetupPage; initialEditingId?: string | null; onClose?: () => void }) {
   const app = useWorkspace();
   const router = useRouter();
+  const { currentPlan } = useSubscription();
+  const { notify } = useNotifications();
   const { workspace, savedWorkspace, dataSource, switchDataSource, restoreSource, update, save, saving, dirty, refreshing, reload, importJson, exportJson, loadSample } = app;
   const [page, setPage] = useState<SetupPage>(initialPage);
   const [editingId, setEditingId] = useState<string | null>(initialEditingId);
@@ -69,20 +74,21 @@ export default function SetupScreen({ initialPage = 'home', initialEditingId = n
   const patch = <K extends CollectionKey>(key: K, id: string, values: Partial<Workspace[K][number]>) => update((current) => ({ ...current, [key]: current[key].map((item) => item.id === id ? { ...item, ...values } : item), generation: null } as Workspace));
   const add = (key: CollectionKey) => {
     const id = createId(key.slice(0, -1));
-    update((current) => {
-      const departmentId = current.departments[0]?.id || '';
-      const semesterId = current.semesters[0]?.id || '';
-      const defaults: Record<CollectionKey, ResourceRecord> = {
+    const departmentId = workspace.departments[0]?.id || '';
+    const semesterId = workspace.semesters[0]?.id || '';
+    const defaults: Record<CollectionKey, ResourceRecord> = {
         departments: { id, code: '', name: '' },
         semesters: { id, departmentId, number: 1, active: true, activeWeekdays: [1, 2, 3, 4, 5] },
         sections: { id, semesterId, code: 'A', studentCount: 40 },
         courses: { id, departmentId, code: '', name: '', semesterNumber: 1, sessionHours: 1.5, sessionsPerWeek: 2, type: 'lecture' },
         teachers: { id, name: '', departmentId, schedulingType: 'primary', preferredStart: '', preferredEnd: '', preferencePriority: 'low', maxDailyHours: 5 },
-        assignments: { id, teacherId: current.teachers[0]?.id || '', courseId: '', semesterId, sectionId: '', role: 'primary' },
+        assignments: { id, teacherId: workspace.teachers[0]?.id || '', courseId: '', semesterId, sectionId: '', role: 'primary' },
         rooms: { id, departmentId, code: '', name: '', type: 'lecture', capacity: 40, borrowable: false },
-      };
-      return { ...current, [key]: [...current[key], defaults[key]], generation: null } as Workspace;
-    });
+    };
+    const candidate = { ...workspace, [key]: [...workspace[key], defaults[key]], generation: null } as Workspace;
+    const quotaError = firstWorkspaceQuotaViolation(candidate, currentPlan.quotas);
+    if (quotaError) { notify(quotaError, 'error'); return; }
+    update(() => candidate);
     setEditingId(id);
   };
   const remove = (key: CollectionKey, id: string) => confirmDestructive('Delete this record?', 'Dependent assignments and records will also be removed. This cannot be undone after saving.', 'Delete', () => { update((current) => removeWithDependents(current, key, id)); setEditingId(null); });
