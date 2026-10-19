@@ -17,6 +17,10 @@ yarn-error.log*
 .yarn/
 .npm/
 package-lock.json
+.cache/
+.parcel-cache/
+.turbo/
+.eslintcache
 
 # ---------------------------------------------------------------------------
 # 2. Environment files & credentials
@@ -76,11 +80,15 @@ _archive/
 android/.gradle/
 android/app/build/
 android/local.properties
+android/.cxx/
 ios/Pods/
 ios/build/
 ios/DerivedData/
+ios/*.xcworkspace/xcuserdata/
+ios/*.xcodeproj/xcuserdata/
 *.hbc
 *.bundle
+.metro-health-check*
 
 # ---------------------------------------------------------------------------
 # 4. Build & compilation output
@@ -89,6 +97,10 @@ build/
 *.tsbuildinfo
 *.js.map
 coverage/
+playwright-report/
+test-results/
+cypress/screenshots/
+cypress/videos/
 *.log
 *.patch
 
@@ -144,6 +156,7 @@ __snapshots__/
 *.snap
 .jest/
 jest.config.local.*
+*.local
 
 # ---------------------------------------------------------------------------
 # 11. Deployment secrets & infrastructure state
